@@ -35,3 +35,8 @@
 - **Hook Version**: 1.02
 - **Date**: 02-04-2026 10:29
 - **Prompt**: Open the workspace root for the lab8-pygame project, read the current copilot instructions if needed, and append a new chronological entry to JOURNAL.md at the end of the file. The entry should follow the repository's journal template from .github/agents/journal-logger.agent.md, timestamped with the current date/time, and should note that this interaction was to read copilot-instructions and activate the journal-logger agent, with no code changes made.
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 02-04-2026 11:10
+- **Prompt**: Can you update README.md to explain how to run the app, what it does, and list the features implemented so far?
