@@ -11,3 +11,6 @@ Automatically captured prompt log. Entries are appended in chronological order (
 ### 26-03-2026 16:55
 - **Prompt**: Can you help me implement 10 squares moving around randomly on a Pygame canvas, with stubs and todos so I can learn while coding?
 
+### 02-04-2026 10:29
+- **Prompt**: read copilot-instructions and activate the journal-logger agent
+
