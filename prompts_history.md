@@ -20,3 +20,6 @@ Automatically captured prompt log. Entries are appended in chronological order (
 ### 02-04-2026 11:10
 - **Prompt**: Can you update README.md to explain how to run the app, what it does, and list the features implemented so far?
 
+### 02-04-2026 11:14
+- **Prompt**: explain vector rotation
+

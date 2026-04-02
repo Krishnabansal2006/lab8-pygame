@@ -40,3 +40,19 @@
 - **Hook Version**: 1.02
 - **Date**: 02-04-2026 11:10
 - **Prompt**: Can you update README.md to explain how to run the app, what it does, and list the features implemented so far?
+
+### **New Interaction**
+- **Agent Version**: 2.2
+- **Date**: 02-04-2026 11:11
+- **User**: krishna.bansal@epita.fr
+- **Prompt**: Can you update README.md to explain how to run the app, what it does, and list the features implemented so far?
+- **CoPilot Mode**: Edit
+- **CoPilot Model**: GPT-5.4 mini
+- **Socratic Mode**: ON
+- **Changes Made**: Added README documentation covering what the app does, how to install Pygame and run the program, and a concise list of implemented features.
+- **Context and Reasons for Changes**: The repository had an empty README, so I added user-facing project documentation for setup and current behavior.
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 02-04-2026 11:14
+- **Prompt**: explain vector rotation
