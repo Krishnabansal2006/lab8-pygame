@@ -1,11 +1,15 @@
 import random
+import math
 import pygame
 
 WIDTH = 800
 HEIGHT = 600
 FPS = 60
-NUM_SQUARES = 10
+NUM_SQUARES = 100
 BG_COLOR = (20, 20, 30)
+MIN_SIZE = 10
+MAX_SIZE = 50
+MAX_SPEED = 4.0
 
 
 class Square:
@@ -14,23 +18,24 @@ class Square:
         self.y = y
         self.size = size
         self.color = color
-        self.vx = 0.0
-        self.vy = 0.0
-        self.direction_timer = 0
-        self.pick_new_direction()
-
-    def pick_new_direction(self) -> None:
-        self.vx = random.uniform(-3.0, 3.0)
-        self.vy = random.uniform(-3.0, 3.0)
-        self.direction_timer = random.randint(20, 90)
+        self.max_speed = MAX_SPEED * (MIN_SIZE / self.size)
+        self.jitter_timer = random.randint(20, 60)
+        angle = random.uniform(0, 2 * math.pi)
+        self.vx = self.max_speed * math.cos(angle)
+        self.vy = self.max_speed * math.sin(angle)
 
     def update(self, screen_w: int, screen_h: int) -> None:
+        self.jitter_timer -= 1
+        if self.jitter_timer <= 0:
+            angle = math.atan2(self.vy, self.vx)
+            angle += random.uniform(-0.05, 0.05)
+            speed = math.hypot(self.vx, self.vy)
+            self.vx = speed * math.cos(angle)
+            self.vy = speed * math.sin(angle)
+            self.jitter_timer = random.randint(30, 90)
+
         self.x += self.vx
         self.y += self.vy
-
-        self.direction_timer -= 1
-        if self.direction_timer <= 0:
-            self.pick_new_direction()
 
         if self.x < 0:
             self.x = 0
@@ -56,7 +61,7 @@ class Square:
 def create_squares(n: int, screen_w: int, screen_h: int) -> list[Square]:
     squares: list[Square] = []
     for _ in range(n):
-        size = random.randint(20, 50)
+        size = random.randint(MIN_SIZE, MAX_SIZE)
         x = random.uniform(0, screen_w - size)
         y = random.uniform(0, screen_h - size)
         color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
