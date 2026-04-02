@@ -19,19 +19,19 @@ class Square:
         self.size = size
         self.color = color
         self.max_speed = MAX_SPEED * (MIN_SIZE / self.size)
+        self.speed = self.max_speed
         self.jitter_timer = random.randint(20, 60)
         angle = random.uniform(0, 2 * math.pi)
-        self.vx = self.max_speed * math.cos(angle)
-        self.vy = self.max_speed * math.sin(angle)
+        self.vx = self.speed * math.cos(angle)
+        self.vy = self.speed * math.sin(angle)
 
     def update(self, screen_w: int, screen_h: int) -> None:
         self.jitter_timer -= 1
         if self.jitter_timer <= 0:
             angle = math.atan2(self.vy, self.vx)
-            angle += random.uniform(-0.05, 0.05)
-            speed = math.hypot(self.vx, self.vy)
-            self.vx = speed * math.cos(angle)
-            self.vy = speed * math.sin(angle)
+            angle += random.uniform(-0.1, 0.1)
+            self.vx = self.speed * math.cos(angle)
+            self.vy = self.speed * math.sin(angle)
             self.jitter_timer = random.randint(30, 90)
 
         self.x += self.vx
