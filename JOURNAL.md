@@ -118,3 +118,8 @@
 - **Hook Version**: 1.02
 - **Date**: 07-04-2026 11:51
 - **Prompt**: ok, now maily all the squares are in the corner stuck or stay there
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 07-04-2026 11:53
+- **Prompt**: can you give me how to do it woth todo and explain it to me
