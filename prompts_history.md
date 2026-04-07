@@ -44,3 +44,6 @@ Automatically captured prompt log. Entries are appended in chronological order (
 ### 07-04-2026 11:49
 - **Prompt**: did you add all the interaction of us
 
+### 07-04-2026 11:51
+- **Prompt**: ok, now maily all the squares are in the corner stuck or stay there
+
