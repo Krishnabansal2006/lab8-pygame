@@ -29,3 +29,6 @@ Automatically captured prompt log. Entries are appended in chronological order (
 ### 07-04-2026 11:36
 - **Prompt**: again review my code, and tell me if something is wrong or somzthing
 
+### 07-04-2026 11:40
+- **Prompt**: the square are getting stuff in the corner
+
