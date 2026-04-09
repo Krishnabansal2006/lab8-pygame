@@ -22,3 +22,25 @@ creating smooth curved movement instead of straight lines.
   transform - it changes direction but not magnitude.
 - Why use atan2 instead of just adding to vx and vy directly? Because atan2
   gives the angle of the vector, which we can rotate cleanly.
+
+
+# Fleeing Feature - My Thinking
+
+## What needs to happen
+- Smaller squares need to detect nearby bigger squares
+- When a bigger square is close, the smaller one should move away from it
+- Squares should still keep some randomness in their movement
+
+## How to detect "nearby"
+- Calculate distance between two squares using their x, y positions
+- Distance formula: sqrt((x2-x1)² + (y2-y1)²)
+- If distance is less than a threshold, the small square should flee
+
+## How to flee
+- Calculate the direction FROM the big square TO the small square
+- Move the small square in that direction
+- Keep some jitter so it doesn't look robotic
+
+## Edge cases
+- What if multiple big squares are nearby? Average the flee directions
+- What if the square is cornered? It should still try to move away
