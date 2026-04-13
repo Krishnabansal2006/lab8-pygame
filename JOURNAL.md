@@ -201,3 +201,8 @@
 - **Hook Version**: 1.02
 - **Date**: 13-04-2026 21:43
 - **Prompt**: can you reviw at my code, i have added the  new feature
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 13-04-2026 21:45
+- **Prompt**: its alright, now i want to add comments on the code, to see what part does what, can you help me woth that
