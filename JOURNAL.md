@@ -186,3 +186,8 @@
 - **Hook Version**: 1.02
 - **Date**: 13-04-2026 14:50
 - **Prompt**: i habe tried to implement lifr span + rebirth, check hows my progress and give me next step
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 13-04-2026 14:51
+- **Prompt**: i want like the scatter animation and die instant wit it being scatter and new one born in 2 sec after
