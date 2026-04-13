@@ -133,7 +133,7 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
 <header>
   <h1>Code Explorer</h1>
   <span class="file-badge">main.py</span>
-  <p style="margin-top:0.4rem;">Project: lab8-pygame | Focus: motion, steering, and render loop architecture for beginner-level Pygame design.</p>
+  <p style="margin-top:0.4rem;">Project: lab8-pygame | Focus: timed lifecycle, steering rules, and frame-safe simulation flow.</p>
 </header>
 
 <nav class="tab-nav">
@@ -155,8 +155,8 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       <button class="arch-btn" onclick="switchArch('seqframe', this)">Frame Sequence</button>
       <button class="arch-btn" onclick="switchArch('seqflee', this)">Flee Sequence</button>
       <button class="arch-btn" onclick="switchArch('dfsq', this)">Data Squares</button>
-      <button class="arch-btn" onclick="switchArch('dfpos', this)">Data Position</button>
-      <button class="arch-btn" onclick="switchArch('dfvel', this)">Data Velocity</button>
+      <button class="arch-btn" onclick="switchArch('dfpt', this)">Data Particles</button>
+      <button class="arch-btn" onclick="switchArch('dfsp', this)">Data Spawns</button>
       <button class="arch-btn" onclick="switchArch('ctrl', this)">Control Flow</button>
     </div>
 
@@ -196,16 +196,16 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       <p class="diag-caption">The squares list is created once, reused every frame, and read for both simulation and UI display.</p>
     </div>
 
-    <div id="arch-dfpos" class="arch-panel">
-      <div class="diag-title">Data Flow: square position</div>
-      <div id="diag-data_position" class="diag-container"></div>
-      <p class="diag-caption">Position starts in random spawn logic, then evolves under velocity and boundary correction.</p>
+    <div id="arch-dfpt" class="arch-panel">
+      <div class="diag-title">Data Flow: particles list</div>
+      <div id="diag-data_particles" class="diag-container"></div>
+      <p class="diag-caption">Particle bursts are created on square death, then updated and removed when lifespan ends.</p>
     </div>
 
-    <div id="arch-dfvel" class="arch-panel">
-      <div class="diag-title">Data Flow: square velocity</div>
-      <div id="diag-data_velocity" class="diag-container"></div>
-      <p class="diag-caption">Velocity is initialized by angle and speed, steered by flee and wall vectors, then clamped each frame.</p>
+    <div id="arch-dfsp" class="arch-panel">
+      <div class="diag-title">Data Flow: pending spawns</div>
+      <div id="diag-data_spawns" class="diag-container"></div>
+      <p class="diag-caption">Delayed spawn timestamps queue rebirths and release new squares after a two second delay.</p>
     </div>
 
     <div id="arch-ctrl" class="arch-panel">
@@ -233,19 +233,19 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       </div>
 
       <div class="pattern-card">
-        <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Square class encapsulates behavior</span></div>
-        <p class="pattern-desc">Movement state and rendering behavior live inside Square methods, so main orchestrates flow while objects own their own state transitions.</p>
+        <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Entity classes separate roles</span></div>
+        <p class="pattern-desc">Square handles long lived movement and Particle handles short burst visuals, so each class has one clear simulation role.</p>
         <div class="pattern-layers">
-          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Related data and methods are grouped in one class.</div>
-          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Encapsulation lowers accidental coupling between loop code and motion math.</div>
-          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>The design naturally supports adding new entity types later.</div>
+          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Each class owns one kind of state and update logic.</div>
+          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Clear boundaries reduce regressions when changing movement or effects.</div>
+          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>This enables scalable entity systems with reusable lifecycles.</div>
         </div>
-        <a class="ext-link" href="https://refactoring.guru/smells/data-clumps" target="_blank" rel="noopener noreferrer">Read: Encapsulation motivation</a>
+        <a class="ext-link" href="https://refactoring.guru/smells/large-class" target="_blank" rel="noopener noreferrer">Read: Class responsibility</a>
       </div>
 
       <div class="pattern-card">
         <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Main loop separates concerns</span></div>
-        <p class="pattern-desc">The game loop handles event polling, simulation updates, draw calls, and display flip in separate contiguous blocks.</p>
+        <p class="pattern-desc">The loop runs input, simulation, rendering, and presentation in clear stages, plus a delayed rebirth queue for lifecycle events.</p>
         <div class="pattern-layers">
           <div class="layer layer-basics"><span class="layer-label">Basics:</span>One block handles input, one handles update, one handles drawing.</div>
           <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Debugging is easier when each stage has a clear responsibility.</div>
@@ -260,26 +260,26 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
 
       <div class="pattern-card">
         <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Long update method complexity</span></div>
-        <p class="pattern-desc">Square.update mixes jitter, flee steering, wall steering, speed clamp, movement, and boundary correction in one method, making edge-case reasoning harder.</p>
+        <p class="pattern-desc">Square.update combines jitter, flee scanning, wall steering, speed clamp, movement, and edge guards in one block, which raises debugging cost.</p>
         <div class="pattern-layers">
           <div class="layer layer-basics"><span class="layer-label">Basics:</span>Large methods are harder to read and test.</div>
           <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Splitting logic into helper methods makes bugs easier to isolate.</div>
           <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>Smaller behavior units support reusable movement systems.</div>
         </div>
-        <div class="fix-hint">Suggestion: Extract helper methods for flee vector, wall vector, and boundary correction.</div>
+        <div class="fix-hint">Suggestion: Extract helper methods for peer steering, wall force, and boundary handling.</div>
         <a class="ext-link" href="https://refactoring.guru/smells/long-method" target="_blank" rel="noopener noreferrer">Read: Long method smell</a>
       </div>
 
       <div class="pattern-card">
-        <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Magic values inside update</span></div>
-        <p class="pattern-desc">Values like margin, wall_strength, blend, and eps are embedded in method scope, which reduces discoverability and tuning consistency.</p>
+        <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Linear peer scan cost</span></div>
+        <p class="pattern-desc">Each square scans all other squares every frame, so flee behavior has quadratic growth as entity count increases.</p>
         <div class="pattern-layers">
-          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Hidden numbers make behavior harder to explain.</div>
-          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Promoting them to constants improves reproducibility during tuning.</div>
-          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>A shared config model enables scenario-based balancing later.</div>
+          <div class="layer layer-basics"><span class="layer-label">Basics:</span>More squares means much more work per frame.</div>
+          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Spatial partitioning cuts unnecessary distance checks.</div>
+          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>Neighbor query systems are key for larger simulations.</div>
         </div>
-        <div class="fix-hint">Suggestion: Move tuning values to module constants near FPS and FLEE_RADIUS.</div>
-        <a class="ext-link" href="https://en.wikipedia.org/wiki/Magic_number_(programming)" target="_blank" rel="noopener noreferrer">Read: Magic number</a>
+        <div class="fix-hint">Suggestion: Partition space into grid buckets and scan only local peers.</div>
+        <a class="ext-link" href="https://en.wikipedia.org/wiki/Spatial_hashing" target="_blank" rel="noopener noreferrer">Read: Spatial hashing</a>
       </div>
     </div>
   </div>
@@ -288,7 +288,7 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
 <div id="tab-typehints" class="tab-panel">
   <div class="type-banner">
     <div class="score-big">4/5</div>
-    <div class="score-verdict">Strong baseline typing: parameters, returns, and concrete generics are mostly present. Main gap is consistency in collection element typing.</div>
+    <div class="score-verdict">Strong baseline typing: parameters, returns, and concrete generics are mostly present. Main gap is one inconsistent collection annotation.</div>
   </div>
 
   <div class="two-col">
@@ -303,8 +303,7 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
     <div class="card">
       <h3>Gaps</h3>
       <ul style="padding-left:1.2rem; color:var(--muted); font-size:0.9rem;">
-        <li>Square.update uses <code>squares: list</code> instead of <code>list[Square]</code>, which weakens static checking.</li>
-        <li>Module-level constants are unannotated, so intent and units are inferred rather than declared.</li>
+        <li>Square.update uses <code>squares: list</code> instead of <code>list[Square]</code>, reducing static type precision in peer access.</li>
       </ul>
     </div>
   </div>
@@ -318,12 +317,12 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
         <p class="ri-note">Correct now for 20 entities, but scales poorly as count grows.</p>
       </div>
       <div class="review-item" id="ri-1" onclick="selectReview(1)">
-        <div class="ri-titlerow"><span class="ri-title">Frame rate dependent motion</span><span class="badge badge-medium">medium</span></div>
-        <p class="ri-note">Movement uses fixed per-frame increments rather than delta time scaling.</p>
+        <div class="ri-titlerow"><span class="ri-title">High function complexity</span><span class="badge badge-medium">medium</span></div>
+        <p class="ri-note">One method owns many steering and boundary concerns.</p>
       </div>
       <div class="review-item" id="ri-2" onclick="selectReview(2)">
-        <div class="ri-titlerow"><span class="ri-title">Hidden tuning constants</span><span class="badge badge-low">low</span></div>
-        <p class="ri-note">Several steering constants are local literals in update.</p>
+        <div class="ri-titlerow"><span class="ri-title">Local magic constants</span><span class="badge badge-low">low</span></div>
+        <p class="ri-note">Behavior tuning values are embedded in update scope.</p>
       </div>
       <div class="review-item" id="ri-3" onclick="selectReview(3)">
         <div class="ri-titlerow"><span class="ri-title">Repeated text rendering</span><span class="badge badge-low">low</span></div>
@@ -349,7 +348,7 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       </div>
       <div class="perf-card">
         <div class="perf-title">Simple vector math path</div>
-        <p class="perf-desc">Movement relies on lightweight scalar operations and avoids heavy allocations in critical update branches.</p>
+        <p class="perf-desc">Update logic uses scalar math and bounded lists, keeping per entity compute lightweight for classroom scale counts.</p>
       </div>
     </div>
 
@@ -368,7 +367,7 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
 
   <div style="margin-top:1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
     <span class="badge-score">Performance Score: 3 / 6</span>
-    <span style="color:var(--muted); font-size:0.9rem;">Verdict: acceptable for small n, but scalability bottlenecks appear first in neighbor scanning.</span>
+    <span style="color:var(--muted); font-size:0.9rem;">Verdict: smooth at current scale, with primary risk concentrated in peer scan growth.</span>
   </div>
 </div>
 
@@ -429,26 +428,26 @@ const reviewItems = [
   id: 0,
   title: 'Quadratic neighbor scan',
   severity: 'medium',
-  snippet: `for sq in squares:\n    sq.update(WIDTH, HEIGHT, squares)\n\nfor other in squares:\n    if other is self:\n        continue`,
+  snippet: `for sq in squares:\n    sq.update(WIDTH, HEIGHT, squares, dt)\n\nfor other in squares:\n    if other is self:\n        continue`,
   shortNote: 'Correct now for 20 entities, but scales poorly as count grows.',
   fullExplanation: 'The update pass loops over all squares, and each square loops over all squares again for flee checks. That yields O(n squared) work per frame.\nThis is fine for small classroom values, but frame time will rise quickly when n increases.',
   improvementHint: 'Introduce a spatial partition approach such as grid buckets to reduce nearby-neighbor checks.'
 },
 {
   id: 1,
-  title: 'Frame rate dependent motion',
+  title: 'High function complexity',
   severity: 'medium',
-  snippet: `clock.tick(FPS)\nself.x += self.vx\nself.y += self.vy`,
-  shortNote: 'Movement uses fixed per-frame increments rather than delta time scaling.',
-  fullExplanation: 'Square movement adds velocity directly each frame without scaling by elapsed time. If actual FPS drops, world motion slows and behavior changes.\nStable simulation across machines usually multiplies velocity by a delta time value.',
-  improvementHint: 'Compute dt from clock.tick and apply self.x += self.vx * dt, self.y += self.vy * dt.'
+  snippet: `def update(self, screen_w: int, screen_h: int, squares: list, dt: float) -> None:\n    ...\n    for other in squares:\n        ...\n    if self.x < 0:\n        ...`,
+  shortNote: 'One method owns many steering and boundary concerns.',
+  fullExplanation: 'Square.update contains many responsibilities including jitter, peer avoidance, wall force, speed clamp, movement, bounce, and edge anti stick logic.\nWhen a bug appears, this concentration makes targeted testing and reasoning harder.',
+  improvementHint: 'Extract helper methods for flee force, wall force, and bounds correction to isolate behavior.'
 },
 {
   id: 2,
-  title: 'Hidden tuning constants',
+  title: 'Local magic constants',
   severity: 'low',
   snippet: `margin = 40\nwall_strength = 0.35\nblend = 0.22\neps = 1e-6`,
-  shortNote: 'Several steering constants are local literals in update.',
+  shortNote: 'Behavior tuning values are embedded in update scope.',
   fullExplanation: 'These values directly impact game feel, but they are defined inside update.\nThis makes tuning harder and can create drift if similar values are later duplicated elsewhere.',
   improvementHint: 'Promote steering constants to module-level names with descriptive comments and units.'
 },
@@ -465,7 +464,7 @@ const reviewItems = [
   id: 4,
   title: 'Generic list type in update',
   severity: 'low',
-  snippet: `def update(self, screen_w: int, screen_h: int, squares: list) -> None:`,
+  snippet: `def update(self, screen_w: int, screen_h: int, squares: list, dt: float) -> None:`,
   shortNote: 'One parameter loses element type information.',
   fullExplanation: 'Most of the file uses modern type hints, but update accepts an untyped list.\nStatic tools then cannot guarantee that each element has size, x, and y fields used by the method.',
   improvementHint: 'Annotate as list[Square] using a forward reference string if needed.'
@@ -572,16 +571,17 @@ data_squares: String.raw`graph TD
   n3 --> n5[frame draw read]
   n3 --> n6[hud count read]`,
 
-data_position: String.raw`graph TD
-  n1[random pos init] --> n2[position update sum]
-  n2 --> n3[wall clamp stage]
-  n3 --> n4[draw rect output]`,
+data_particles: String.raw`graph TD
+  n1[square death event] --> n2[burst list create]
+  n2 --> n3[particles extend list]
+  n3 --> n4[frame filter alive]
+  n4 --> n5[particle update draw]`,
 
-data_velocity: String.raw`graph TD
-  n1[random angle init] --> n2[velocity vector set]
-  n2 --> n3[flee steer blend]
-  n3 --> n4[speed clamp step]
-  n4 --> n5[position delta use]`,
+data_spawns: String.raw`graph TD
+  n1[square death event] --> n2[delay time append]
+  n2 --> n3[pending list state]
+  n3 --> n4[time reached check]
+  n4 --> n5[new square append]`,
 
 control_flow: String.raw`graph TD
   n1[frame start node] --> n2[jitter check node]

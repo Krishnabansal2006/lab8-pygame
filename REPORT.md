@@ -1,30 +1,46 @@
 # Project Report: AI-Assisted Development
 
 ## 1. Initial Approach
-**Understanding:** I started by getting the basic 10 squares working from last week,
-then added features one at a time - increasing to 100 squares, adding size-based
-speed limits, and finally the jitter effect.
 
-**Assumptions:** I assumed the jitter would be simple to add but it turned out the
-direction timer and jitter were fighting each other, so I had to remove the old
-direction system completely.
+**Understanding:** I started with 10 basic moving squares and added features
+one at a time — increasing to 20 squares, size-based speed, jitter, flee
+behavior, wall steering, life span, and particle rebirth.
 
-## 2. Prompting & AI Interaction
-**Successes:** Asking Copilot to explain concepts like atan2 and vector rotation
-worked well. It gave clear answers without writing the code for me.
+**Assumptions:** I assumed the flee feature would be simple but it involved
+vectors, distances, and blending which took time to understand and get right.
 
-**Failures:** When I asked for the full code directly it gave me everything at once
-and I lost track of what each part was doing. I also had indentation errors because
-I was copy pasting instead of writing myself.
+**Points needing clarification:** I was not sure at first whether to use
+vector rotation or vector addition for the flee force. I ended up using
+vector addition with distance weighting.
 
-**Analysis:** The failures happened when I relied too much on copy paste. When I
-typed the code myself I understood it better and caught errors faster.
+## 2. Prompting and AI Interaction
+
+**Successes:** Asking Copilot to explain concepts like atan2, vector
+normalization, and distance weighting worked well. It explained without
+writing the code for me which helped me actually understand.
+
+**Failures:** When I asked for the full code it gave me everything at once
+and I lost track of what was happening. Indentation errors also happened
+because I was copy pasting instead of writing myself.
+
+**Analysis:** The failures happened when I relied too much on getting
+complete solutions. Understanding each piece separately worked much better.
 
 ## 3. Key Learnings
-**Technical Skills:** I learned how vector rotation works using atan2, cos and sin.
-I also learned that math.hypot gives you the magnitude of a vector, and that
-rotating a vector preserves its speed.
 
-**AI Workflow:** Next time I will write more code myself and only use Copilot to
-review or explain. Copy pasting full functions without understanding them causes
-more problems than it saves time.
+**Technical Skills:** I learned how vector math works in practice — using
+math.hypot for distance, math.atan2 for angle, and cos/sin to rebuild a
+velocity vector from angle and speed. I also learned how dt makes movement
+frame-rate independent and why that matters.
+
+**New concepts:** Particle systems, pending spawn timers, time-based
+animation, soft wall steering, and blending velocity vectors.
+
+**AI Workflow:** Copilot is most useful for explaining concepts and reviewing
+code. Writing code myself then asking for review works better than asking
+for the full solution. When I copy pasted without understanding, I introduced
+bugs I could not fix because I did not know what the code was doing.
+
+**Would I use AI the same way next time:** I would use Ask Mode more and
+Agent Mode less for the core logic. For boilerplate and documentation,
+Agent Mode saves a lot of time.

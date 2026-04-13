@@ -1,38 +1,42 @@
-# Lab 8: Random Squares
+# Lab 8: Random Moving Squares
 
-This project is a small Pygame animation that fills the window with moving colored squares. Each square starts with a random size, position, color, and direction, then bounces around the screen while occasionally changing direction a little to feel less rigid.
+A Pygame simulation of colored squares that move, flee, age, and respawn.
 
 ## What it does
 
-When you run the app, a Pygame window opens and animates a field of squares at 60 FPS. The squares move continuously, bounce off the window edges, and keep updating until you close the window.
+A window opens showing 20 colored squares moving around the screen.
+Smaller squares flee from bigger ones when they get too close.
+Each square has a random lifespan — when it dies, it bursts into particles
+and a new square is spawned 2 seconds later to replace it.
 
-## How to run it
+## Features
 
-1. Make sure Python 3 is installed.
-2. Install Pygame if you do not already have it:
+- 20 squares with random size, color, speed and direction
+- Bigger squares move slower than smaller ones
+- Jitter: each square slightly rotates its direction over time
+- Flee: smaller squares detect and flee from nearby bigger ones
+- Wall steering: squares are pushed away from edges before hitting them
+- Life span: each square lives between 5 and 20 seconds
+- Rebirth: when a square dies, a particle burst appears and a new square spawns 2 seconds later
+- Time-based movement: speed is frame-rate independent using dt
+- FPS and square count shown on screen
 
-	```bash
-	python -m pip install pygame
-	```
+## How to run
 
-3. Start the app from the project root:
+1. Install Python 3
+2. Install Pygame:
+    ```bash
+    python3 -m pip install pygame
+    ```
+3. Run the app:
+    ```bash
+    python3 main.py
+    ```
 
-	```bash
-	python main.py
-	```
+## Files
 
-## Features implemented so far
-
-- Opens an `800 x 600` Pygame window.
-- Spawns `100` squares at random positions.
-- Gives each square a random size between `10` and `50` pixels.
-- Assigns each square a random color.
-- Moves squares in random initial directions.
-- Applies occasional jitter so movement changes slightly over time.
-- Bounces squares off all four window edges.
-- Renders the animation at `60 FPS`.
-
-## Main files
-
-- `main.py`: the full animation and game loop.
-- `JOURNAL.md`: chronological log of changes made during the project.
+- `main.py` — simulation logic and game loop
+- `JOURNAL.md` — log of all Copilot interactions
+- `prompts_history.md` — prompt history
+- `MYNOTES.md` — design thinking and feature notes
+- `REPORT.md` — project reflection

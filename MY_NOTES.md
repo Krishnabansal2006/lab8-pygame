@@ -44,3 +44,29 @@ creating smooth curved movement instead of straight lines.
 ## Edge cases
 - What if multiple big squares are nearby? Average the flee directions
 - What if the square is cornered? It should still try to move away
+
+
+# Life Span + Rebirth - My Thinking
+
+## What needs to happen
+- Each square has a random life span (between 30 and 180 seconds)
+- When a square reaches the end of its life, it dies
+- A new square is created to replace it
+
+## How to implement
+- Add a `lifespan` attribute to Square (random between 30 and 180)
+- Add an `age` attribute starting at 0
+- Each frame, increase age by dt
+- When age >= lifespan, the square is dead
+- In main loop, check for dead squares and replace them
+
+## Life Span + Rebirth - Design Decisions
+
+- Particles: 10 small dots at the dead square's location
+- Particles keep the dying square's color
+- 2 second delay per dead square (independent timers)
+
+### Data structures needed
+- squares: list of alive Square objects
+- particles: list of small visual dots (short life 0.5s)
+- pending_spawns: list of floats (timestamps when to spawn new square)
