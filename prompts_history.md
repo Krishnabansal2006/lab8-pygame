@@ -19,3 +19,6 @@
 ### 13-04-2026 14:51
 - **Prompt**: i want like the scatter animation and die instant wit it being scatter and new one born in 2 sec after
 
+### 13-04-2026 21:43
+- **Prompt**: look at my implentation
+
