@@ -46,3 +46,6 @@
 ### 16-04-2026 10:29
 - **Prompt**: activate the journal
 
+### 16-04-2026 10:30
+- **Prompt**: i have added a spawn feature, review it and check if its correct or any improvement
+
