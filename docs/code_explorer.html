@@ -133,7 +133,7 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
 <header>
   <h1>Code Explorer</h1>
   <span class="file-badge">main.py</span>
-  <p style="margin-top:0.4rem;">Project: lab8-pygame | Focus: timed lifecycle, steering rules, and frame-safe simulation flow.</p>
+  <p style="margin-top:0.4rem;">Project: lab8-pygame | Focus: lifecycle rebirth queue, particle effects, freeze timer, and frame-safe motion.</p>
 </header>
 
 <nav class="tab-nav">
@@ -152,18 +152,18 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       <button class="arch-btn active" onclick="switchArch('call', this)">Call Graph</button>
       <button class="arch-btn" onclick="switchArch('deps', this)">Dependencies</button>
       <button class="arch-btn" onclick="switchArch('fullseq', this)">Full Sequence</button>
-      <button class="arch-btn" onclick="switchArch('seqframe', this)">Frame Sequence</button>
-      <button class="arch-btn" onclick="switchArch('seqflee', this)">Flee Sequence</button>
+      <button class="arch-btn" onclick="switchArch('seqlife', this)">Life Cycle</button>
+      <button class="arch-btn" onclick="switchArch('seqsteer', this)">Steering</button>
       <button class="arch-btn" onclick="switchArch('dfsq', this)">Data Squares</button>
       <button class="arch-btn" onclick="switchArch('dfpt', this)">Data Particles</button>
       <button class="arch-btn" onclick="switchArch('dfsp', this)">Data Spawns</button>
-      <button class="arch-btn" onclick="switchArch('ctrl', this)">Control Flow</button>
+      <button class="arch-btn" onclick="switchArch('state', this)">State View</button>
     </div>
 
     <div id="arch-call" class="arch-panel active">
       <div class="diag-title">Call Graph Overview</div>
       <div id="diag-call_graph" class="diag-container"></div>
-      <p class="diag-caption">This graph shows how setup, updates, and drawing are linked during each game frame.</p>
+      <p class="diag-caption">This graph shows how setup, death handling, rebirth scheduling, and draw steps connect inside each frame.</p>
     </div>
 
     <div id="arch-deps" class="arch-panel">
@@ -175,43 +175,43 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
     <div id="arch-fullseq" class="arch-panel">
       <div class="diag-title">Full Runtime Sequence</div>
       <div id="diag-full_sequence" class="diag-container"></div>
-      <p class="diag-caption">This sequence follows one frame from startup through update, draw, and display flip.</p>
+      <p class="diag-caption">This sequence follows one frame through input, square updates, death bursts, delayed spawns, and final rendering.</p>
     </div>
 
-    <div id="arch-seqframe" class="arch-panel">
-      <div class="diag-title">Frame Update Sequence</div>
-      <div id="diag-seq_frame" class="diag-container"></div>
-      <p class="diag-caption">This sequence zooms in on the per-frame event loop and square update pipeline.</p>
+    <div id="arch-seqlife" class="arch-panel">
+      <div class="diag-title">Death To Rebirth Sequence</div>
+      <div id="diag-seq_lifecycle" class="diag-container"></div>
+      <p class="diag-caption">This sequence focuses on the new lifecycle path where a death schedules rebirth and the new square starts with a freeze timer.</p>
     </div>
 
-    <div id="arch-seqflee" class="arch-panel">
-      <div class="diag-title">Flee Steering Sequence</div>
-      <div id="diag-seq_flee" class="diag-container"></div>
-      <p class="diag-caption">This sequence shows how each square computes flee vectors and blends steering into velocity.</p>
+    <div id="arch-seqsteer" class="arch-panel">
+      <div class="diag-title">Steering And Wall Sequence</div>
+      <div id="diag-seq_steer" class="diag-container"></div>
+      <p class="diag-caption">This sequence zooms into jitter, flee checks, wall forces, velocity blending, and edge recovery for each square.</p>
     </div>
 
     <div id="arch-dfsq" class="arch-panel">
       <div class="diag-title">Data Flow: squares list</div>
       <div id="diag-data_squares" class="diag-container"></div>
-      <p class="diag-caption">The squares list is created once, reused every frame, and read for both simulation and UI display.</p>
+      <p class="diag-caption">The squares list is built at startup, filtered into alive entries, extended by rebirth, and reused for draw plus HUD count.</p>
     </div>
 
     <div id="arch-dfpt" class="arch-panel">
       <div class="diag-title">Data Flow: particles list</div>
       <div id="diag-data_particles" class="diag-container"></div>
-      <p class="diag-caption">Particle bursts are created on square death, then updated and removed when lifespan ends.</p>
+      <p class="diag-caption">Particles are appended from death and birth events, updated with delta time, and removed by lifespan filtering.</p>
     </div>
 
     <div id="arch-dfsp" class="arch-panel">
       <div class="diag-title">Data Flow: pending spawns</div>
       <div id="diag-data_spawns" class="diag-container"></div>
-      <p class="diag-caption">Delayed spawn timestamps queue rebirths and release new squares after a two second delay.</p>
+      <p class="diag-caption">The pending queue stores spawn times and locations, then emits new frozen squares when timers elapse.</p>
     </div>
 
-    <div id="arch-ctrl" class="arch-panel">
-      <div class="diag-title">Optional Control Flow</div>
-      <div id="diag-control_flow" class="diag-container"></div>
-      <p class="diag-caption">This optional diagram highlights branch points in update logic that influence movement behavior.</p>
+    <div id="arch-state" class="arch-panel">
+      <div class="diag-title">Optional Lifecycle State View</div>
+      <div id="diag-lifecycle_state" class="diag-container"></div>
+      <p class="diag-caption">This optional state diagram clarifies transitions between active movement, death, queued rebirth, and freeze cooldown.</p>
     </div>
   </div>
 </div>
@@ -233,25 +233,25 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       </div>
 
       <div class="pattern-card">
-        <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Entity classes separate roles</span></div>
-        <p class="pattern-desc">Square handles long lived movement and Particle handles short burst visuals, so each class has one clear simulation role.</p>
+        <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Lifecycle pipeline is explicit</span></div>
+        <p class="pattern-desc">Death bursts, delayed rebirth timestamps, and a one second freeze timer create a clear entity lifecycle instead of hidden side effects.</p>
         <div class="pattern-layers">
-          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Each class owns one kind of state and update logic.</div>
-          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Clear boundaries reduce regressions when changing movement or effects.</div>
-          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>This enables scalable entity systems with reusable lifecycles.</div>
+          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Each phase of life is represented by specific data structures.</div>
+          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Queue based rebirth avoids list mutation hazards while iterating dead squares.</div>
+          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>This resembles event driven simulation loops used in larger games.</div>
         </div>
-        <a class="ext-link" href="https://refactoring.guru/smells/large-class" target="_blank" rel="noopener noreferrer">Read: Class responsibility</a>
+        <a class="ext-link" href="https://en.wikipedia.org/wiki/Event-driven_programming" target="_blank" rel="noopener noreferrer">Read: Event driven systems</a>
       </div>
 
       <div class="pattern-card">
-        <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Main loop separates concerns</span></div>
-        <p class="pattern-desc">The loop runs input, simulation, rendering, and presentation in clear stages, plus a delayed rebirth queue for lifecycle events.</p>
+        <div class="pattern-header"><span class="pattern-icon">✅</span><span class="pattern-title">Time based motion consistency</span></div>
+        <p class="pattern-desc">Squares and particles use dt-based updates, so movement stays stable under changing frame rates and FPS caps.</p>
         <div class="pattern-layers">
-          <div class="layer layer-basics"><span class="layer-label">Basics:</span>One block handles input, one handles update, one handles drawing.</div>
-          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Debugging is easier when each stage has a clear responsibility.</div>
-          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>This mirrors common engine pipelines and scales to larger projects.</div>
+          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Delta time helps motion stay smooth on slower or faster hardware.</div>
+          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Freeze cooldown and lifespans align to real seconds rather than frame count.</div>
+          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>This enables deterministic tuning across environments with similar dt handling.</div>
         </div>
-        <a class="ext-link" href="https://developer.mozilla.org/en-US/docs/Games/Anatomy" target="_blank" rel="noopener noreferrer">Read: Game loop anatomy</a>
+        <a class="ext-link" href="https://www.pygame.org/docs/ref/time.html" target="_blank" rel="noopener noreferrer">Read: Pygame time docs</a>
       </div>
     </div>
 
@@ -259,26 +259,26 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
       <div class="section-head yellow">Potential Issues</div>
 
       <div class="pattern-card">
-        <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Long update method complexity</span></div>
-        <p class="pattern-desc">Square.update combines jitter, flee scanning, wall steering, speed clamp, movement, and edge guards in one block, which raises debugging cost.</p>
+        <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Dense update method scope</span></div>
+        <p class="pattern-desc">Square.update currently handles freeze logic, aging, jitter, flee steering, wall steering, clamping, movement, bounce, and anti-stick in one method.</p>
         <div class="pattern-layers">
-          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Large methods are harder to read and test.</div>
-          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Splitting logic into helper methods makes bugs easier to isolate.</div>
-          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>Smaller behavior units support reusable movement systems.</div>
+          <div class="layer layer-basics"><span class="layer-label">Basics:</span>Long methods are harder to inspect and test in isolation.</div>
+          <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Smaller helpers improve debugging of edge cases like wall corners.</div>
+          <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>Behavior modules can be reused for other entities later.</div>
         </div>
-        <div class="fix-hint">Suggestion: Extract helper methods for peer steering, wall force, and boundary handling.</div>
+        <div class="fix-hint">Suggestion: extract methods for flee force, wall force, and boundary correction.</div>
         <a class="ext-link" href="https://refactoring.guru/smells/long-method" target="_blank" rel="noopener noreferrer">Read: Long method smell</a>
       </div>
 
       <div class="pattern-card">
-        <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Linear peer scan cost</span></div>
-        <p class="pattern-desc">Each square scans all other squares every frame, so flee behavior has quadratic growth as entity count increases.</p>
+        <div class="pattern-header"><span class="pattern-icon">⚠️</span><span class="pattern-title">Quadratic peer scanning cost</span></div>
+        <p class="pattern-desc">Every square checks every other square to build flee vectors, which is O n squared per frame and grows fast with more entities.</p>
         <div class="pattern-layers">
           <div class="layer layer-basics"><span class="layer-label">Basics:</span>More squares means much more work per frame.</div>
           <div class="layer layer-eng"><span class="layer-label">Engineering Insight:</span>Spatial partitioning cuts unnecessary distance checks.</div>
           <div class="layer layer-arch"><span class="layer-label">Architecture Insight:</span>Neighbor query systems are key for larger simulations.</div>
         </div>
-        <div class="fix-hint">Suggestion: Partition space into grid buckets and scan only local peers.</div>
+        <div class="fix-hint">Suggestion: bucket squares by cell index and scan only nearby buckets.</div>
         <a class="ext-link" href="https://en.wikipedia.org/wiki/Spatial_hashing" target="_blank" rel="noopener noreferrer">Read: Spatial hashing</a>
       </div>
     </div>
@@ -313,24 +313,24 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
   <div class="review-layout">
     <div class="review-left">
       <div class="review-item selected" id="ri-0" onclick="selectReview(0)">
-        <div class="ri-titlerow"><span class="ri-title">Quadratic neighbor scan</span><span class="badge badge-medium">medium</span></div>
-        <p class="ri-note">Correct now for 20 entities, but scales poorly as count grows.</p>
+        <div class="ri-titlerow"><span class="ri-title">Quadratic flee loop</span><span class="badge badge-medium">medium</span></div>
+        <p class="ri-note">Correctness is fine now, but complexity rises rapidly with entity count.</p>
       </div>
       <div class="review-item" id="ri-1" onclick="selectReview(1)">
-        <div class="ri-titlerow"><span class="ri-title">High function complexity</span><span class="badge badge-medium">medium</span></div>
-        <p class="ri-note">One method owns many steering and boundary concerns.</p>
+        <div class="ri-titlerow"><span class="ri-title">Rebirth may start offscreen</span><span class="badge badge-medium">medium</span></div>
+        <p class="ri-note">Center based respawn can place initial top-left outside bounds for large sizes.</p>
       </div>
       <div class="review-item" id="ri-2" onclick="selectReview(2)">
-        <div class="ri-titlerow"><span class="ri-title">Local magic constants</span><span class="badge badge-low">low</span></div>
-        <p class="ri-note">Behavior tuning values are embedded in update scope.</p>
+        <div class="ri-titlerow"><span class="ri-title">Large update responsibility</span><span class="badge badge-medium">medium</span></div>
+        <p class="ri-note">Many behaviors are stacked in one method, increasing maintenance risk.</p>
       </div>
       <div class="review-item" id="ri-3" onclick="selectReview(3)">
-        <div class="ri-titlerow"><span class="ri-title">Repeated text rendering</span><span class="badge badge-low">low</span></div>
-        <p class="ri-note">UI text surfaces are recreated each frame.</p>
+        <div class="ri-titlerow"><span class="ri-title">Particle spikes during waves</span><span class="badge badge-low">low</span></div>
+        <p class="ri-note">Thirty particles per death and birth can briefly create large active lists.</p>
       </div>
       <div class="review-item" id="ri-4" onclick="selectReview(4)">
-        <div class="ri-titlerow"><span class="ri-title">Generic list type in update</span><span class="badge badge-low">low</span></div>
-        <p class="ri-note">One parameter loses element type information.</p>
+        <div class="ri-titlerow"><span class="ri-title">Loose list annotation</span><span class="badge badge-low">low</span></div>
+        <p class="ri-note">One parameter uses untyped list, lowering type checker precision.</p>
       </div>
     </div>
 
@@ -343,31 +343,31 @@ pre.snippet { background: #12121e; border-radius: 5px; padding: 0.7rem; font-siz
     <div>
       <div class="section-head green">Wins</div>
       <div class="perf-card">
-        <div class="perf-title">Bounded interaction radius</div>
-        <p class="perf-desc">Even though every square checks all peers, expensive steering math only applies when distance is inside FLEE_RADIUS, reducing heavy branch work for distant pairs.</p>
+        <div class="perf-title">Delta time everywhere</div>
+        <p class="perf-desc">Both Particle.update and Square.update rely on dt, which stabilizes behavior and avoids frame-coupled simulation drift.</p>
       </div>
       <div class="perf-card">
-        <div class="perf-title">Simple vector math path</div>
-        <p class="perf-desc">Update logic uses scalar math and bounded lists, keeping per entity compute lightweight for classroom scale counts.</p>
+        <div class="perf-title">Simple particle primitives</div>
+        <p class="perf-desc">Particles use lightweight scalar state and circle draws, keeping individual effect updates cheap despite many short-lived instances.</p>
       </div>
     </div>
 
     <div>
       <div class="section-head red">Risks</div>
       <div class="perf-card">
-        <div class="perf-title">O n squared steering loop</div>
-        <p class="perf-desc">Each frame computes pairwise checks across squares, so total work grows roughly with n squared as entity count increases.</p>
+        <div class="perf-title">Pairwise flee checks</div>
+        <p class="perf-desc">The steering loop remains O n squared because each square scans all peers each frame before applying flee weights.</p>
       </div>
       <div class="perf-card">
-        <div class="perf-title">Per frame text surface creation</div>
-        <p class="perf-desc">font.render is called twice every frame, which adds avoidable overhead compared with caching labels that change less often.</p>
+        <div class="perf-title">Burst heavy particle waves</div>
+        <p class="perf-desc">Death and rebirth each emit 30 particles, so clustered deaths can trigger temporary update and draw spikes.</p>
       </div>
     </div>
   </div>
 
   <div style="margin-top:1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-    <span class="badge-score">Performance Score: 3 / 6</span>
-    <span style="color:var(--muted); font-size:0.9rem;">Verdict: smooth at current scale, with primary risk concentrated in peer scan growth.</span>
+    <span class="badge-score">Performance Score: 4 / 6</span>
+    <span style="color:var(--muted); font-size:0.9rem;">Verdict: efficient for current count, with scale risks concentrated in peer scan and burst effects.</span>
   </div>
 </div>
 
@@ -426,48 +426,48 @@ function switchArch(name, btn) {
 const reviewItems = [
 {
   id: 0,
-  title: 'Quadratic neighbor scan',
+  title: 'Quadratic flee loop',
   severity: 'medium',
   snippet: `for sq in squares:\n    sq.update(WIDTH, HEIGHT, squares, dt)\n\nfor other in squares:\n    if other is self:\n        continue`,
-  shortNote: 'Correct now for 20 entities, but scales poorly as count grows.',
-  fullExplanation: 'The update pass loops over all squares, and each square loops over all squares again for flee checks. That yields O(n squared) work per frame.\nThis is fine for small classroom values, but frame time will rise quickly when n increases.',
-  improvementHint: 'Introduce a spatial partition approach such as grid buckets to reduce nearby-neighbor checks.'
+  shortNote: 'Correctness is fine now, but complexity rises rapidly with entity count.',
+  fullExplanation: 'Each square update iterates over all squares to compute flee influence from larger neighbors. This creates O n squared cost per frame.\nAt NUM_SQUARES equals 20 this is acceptable, but scaling to larger swarms will consume frame budget quickly.',
+  improvementHint: 'Use a simple uniform grid to query only nearby neighbors within FLEE_RADIUS.'
 },
 {
   id: 1,
-  title: 'High function complexity',
+  title: 'Rebirth may start offscreen',
   severity: 'medium',
-  snippet: `def update(self, screen_w: int, screen_h: int, squares: list, dt: float) -> None:\n    ...\n    for other in squares:\n        ...\n    if self.x < 0:\n        ...`,
-  shortNote: 'One method owns many steering and boundary concerns.',
-  fullExplanation: 'Square.update contains many responsibilities including jitter, peer avoidance, wall force, speed clamp, movement, bounce, and edge anti stick logic.\nWhen a bug appears, this concentration makes targeted testing and reasoning harder.',
-  improvementHint: 'Extract helper methods for flee force, wall force, and bounds correction to isolate behavior.'
+  snippet: `new_sq: Square = Square(bx - size / 2, by - size / 2, size, color)\nnew_sq.freeze_timer = 1.0`,
+  shortNote: 'Center based respawn can place initial top-left outside bounds for large sizes.',
+  fullExplanation: 'Respawn uses the prior death center and computes top-left from new size. Near edges, the resulting x or y can be negative or exceed limits.\nThe update loop later corrects this, but the frozen square can render clipped for one second before first motion update.',
+  improvementHint: 'Clamp respawn x and y immediately to screen bounds using size before appending new_sq.'
 },
 {
   id: 2,
-  title: 'Local magic constants',
-  severity: 'low',
-  snippet: `margin = 40\nwall_strength = 0.35\nblend = 0.22\neps = 1e-6`,
-  shortNote: 'Behavior tuning values are embedded in update scope.',
-  fullExplanation: 'These values directly impact game feel, but they are defined inside update.\nThis makes tuning harder and can create drift if similar values are later duplicated elsewhere.',
-  improvementHint: 'Promote steering constants to module-level names with descriptive comments and units.'
+  title: 'Large update responsibility',
+  severity: 'medium',
+  snippet: `def update(self, screen_w: int, screen_h: int, squares: list, dt: float) -> None:\n    if self.freeze_timer > 0:\n        ...\n    for other in squares:\n        ...\n    if self.x < 0:\n        ...`,
+  shortNote: 'Many behaviors are stacked in one method, increasing maintenance risk.',
+  fullExplanation: 'Square.update currently owns freeze countdown, lifespan aging, jitter, flee force, wall force, blend, movement, bounces, and anti-stick logic.\nThis concentration makes it harder to unit test and reason about subtle interactions when behavior changes.',
+  improvementHint: 'Extract helper methods such as compute_flee_force, compute_wall_force, and resolve_bounds.'
 },
 {
   id: 3,
-  title: 'Repeated text rendering',
+  title: 'Particle spikes during waves',
   severity: 'low',
-  snippet: `fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))\ncount_text = font.render(f"Squares: {len(squares)}", True, (255, 255, 255))`,
-  shortNote: 'UI text surfaces are recreated each frame.',
-  fullExplanation: 'Rendering text every frame is convenient but slightly expensive in render loops.\nA tiny cache keyed by displayed value can reduce this cost and simplify future HUD growth.',
-  improvementHint: 'Cache text surfaces and rebuild only when FPS bucket or square count changes.'
+  snippet: `particles.extend(create_death_particles(cx, cy, sq.color))\nparticles.extend(create_birth_particles(bx, by, color))`,
+  shortNote: 'Thirty particles per death and birth can briefly create large active lists.',
+  fullExplanation: 'Both death and birth emit 30 particles. If several squares die around the same time, active particle count can jump quickly.\nThis is usually fine for this lab, but it can reduce FPS on weaker hardware during dense event bursts.',
+  improvementHint: 'Cap total active particles or scale emission count based on current list length.'
 },
 {
   id: 4,
-  title: 'Generic list type in update',
+  title: 'Loose list annotation',
   severity: 'low',
   snippet: `def update(self, screen_w: int, screen_h: int, squares: list, dt: float) -> None:`,
-  shortNote: 'One parameter loses element type information.',
-  fullExplanation: 'Most of the file uses modern type hints, but update accepts an untyped list.\nStatic tools then cannot guarantee that each element has size, x, and y fields used by the method.',
-  improvementHint: 'Annotate as list[Square] using a forward reference string if needed.'
+  shortNote: 'One parameter uses untyped list, lowering type checker precision.',
+  fullExplanation: 'Most code uses modern typing, but the squares parameter is annotated as a raw list.\nThis weakens static checks for fields accessed on each peer in flee calculations.',
+  improvementHint: 'Use list[Square] with a forward reference string if needed.'
 }
 ];
 
@@ -501,11 +501,13 @@ call_graph: String.raw`graph TD
   n1[program start phase] --> n2[main setup phase]
   n2 --> n3[create squares step]
   n3 --> n4[square init step]
-  n2 --> n5[event loop step]
-  n5 --> n6[square update step]
-  n5 --> n7[square draw step]
-  n5 --> n8[hud render step]
-  n5 --> n9[display flip step]`,
+  n2 --> n5[frame loop phase]
+  n5 --> n6[square update pass]
+  n6 --> n7[death burst step]
+  n7 --> n8[pending spawn queue]
+  n8 --> n9[rebirth spawn step]
+  n5 --> n10[particle update pass]
+  n5 --> n11[draw and flip step]`,
 
 dependency_graph: String.raw`graph LR
   n1[main file module] --> n2[python random module]
@@ -518,78 +520,96 @@ dependency_graph: String.raw`graph LR
 full_sequence: String.raw`sequenceDiagram
   participant p1 as boot
   participant p2 as main
-  participant p3 as maker
-  participant p4 as loop
-  participant p5 as square
+  participant p3 as squares
+  participant p4 as lifeq
+  participant p5 as parts
   participant p6 as screen
   p1->>p2: start main flow
-  p2->>p3: create square list
+  p2->>p3: build square list
   p3-->>p2: return square list
-  p2->>p4: begin frame cycle
-  p4->>p5: run update pass
-  p5-->>p4: return new state
-  p4->>p5: run draw pass
-  p5->>p6: draw rect pixels
-  p4->>p6: draw hud text
-  p4->>p6: flip display now
-  p6-->>p4: frame shown ack`,
+  p2->>p2: tick and poll events
+  p2->>p3: update each square
+  p3-->>p2: return alive and dead
+  p2->>p5: emit death particles
+  p2->>p4: queue delayed spawn
+  p2->>p4: check due spawns
+  p4-->>p2: release spawn entries
+  p2->>p5: emit birth particles
+  p2->>p3: append frozen squares
+  p2->>p5: update and prune
+  p2->>p6: draw scene and hud
+  p2->>p6: present frame now`,
 
-seq_frame: String.raw`sequenceDiagram
+seq_lifecycle: String.raw`sequenceDiagram
   participant p1 as main
-  participant p2 as clock
-  participant p3 as events
-  participant p4 as squares
-  participant p5 as screen
-  p1->>p2: cap frame pace
-  p1->>p3: poll quit event
-  p1->>p5: clear back buffer
-  p1->>p4: iterate square list
-  p4->>p4: update each square
-  p4->>p5: draw each square
-  p1->>p5: draw text labels
-  p1->>p5: present frame now`,
+  participant p2 as square
+  participant p3 as parts
+  participant p4 as queue
+  participant p5 as newborn
+  p1->>p2: update with dt
+  p2-->>p1: report dead state
+  p1->>p3: create death burst
+  p1->>p4: store spawn time
+  p1->>p4: check time reached
+  p4-->>p1: return spawn point
+  p1->>p5: create new square
+  p1->>p5: set freeze timer
+  p1->>p3: create birth flow
+  p5-->>p1: hold until unfrozen`,
 
-seq_flee: String.raw`sequenceDiagram
+seq_steer: String.raw`sequenceDiagram
   participant p1 as square
   participant p2 as peers
-  participant p3 as steer
-  participant p4 as wall
-  participant p5 as move
-  p1->>p2: scan bigger peers
-  p2-->>p1: return nearby set
-  p1->>p3: blend flee vector
-  p1->>p4: blend wall vector
-  p3-->>p1: return steer dir
-  p4-->>p1: return wall dir
-  p1->>p5: clamp and advance
-  p5-->>p1: return fixed pos`,
+  participant p3 as walls
+  participant p4 as blend
+  participant p5 as bounds
+  p1->>p1: apply freeze gate
+  p1->>p1: age and jitter
+  p1->>p2: scan larger peers
+  p2-->>p1: return flee force
+  p1->>p3: sample wall force
+  p3-->>p1: return push force
+  p1->>p4: blend steer vector
+  p4-->>p1: return velocity
+  p1->>p5: clamp and bounce
+  p5-->>p1: return safe pos`,
 
 data_squares: String.raw`graph TD
-  n1[random spawn step] --> n2[square list build]
-  n2 --> n3[main state bind]
-  n3 --> n4[frame update read]
-  n3 --> n5[frame draw read]
-  n3 --> n6[hud count read]`,
+  n1[initial spawn list] --> n2[main squares state]
+  n2 --> n3[update each frame]
+  n3 --> n4[dead become removed]
+  n4 --> n5[alive list replace]
+  n5 --> n6[rebirth append step]
+  n6 --> n7[draw and hud read]`,
 
 data_particles: String.raw`graph TD
-  n1[square death event] --> n2[burst list create]
-  n2 --> n3[particles extend list]
-  n3 --> n4[frame filter alive]
-  n4 --> n5[particle update draw]`,
+  n1[death event fire] --> n2[death burst create]
+  n1 --> n3[birth flow create]
+  n2 --> n4[particles list add]
+  n3 --> n4[particles list add]
+  n4 --> n5[filter dead each frame]
+  n5 --> n6[update and draw pass]`,
 
 data_spawns: String.raw`graph TD
-  n1[square death event] --> n2[delay time append]
-  n2 --> n3[pending list state]
-  n3 --> n4[time reached check]
-  n4 --> n5[new square append]`,
+  n1[square death time] --> n2[spawn tuple create]
+  n2 --> n3[pending queue list]
+  n3 --> n4[check current time]
+  n4 --> n5[spawn due entries]
+  n5 --> n6[new frozen square]
+  n4 --> n7[keep pending entries]`,
 
-control_flow: String.raw`graph TD
-  n1[frame start node] --> n2[jitter check node]
-  n2 --> n3[peer scan loop]
-  n3 --> n4[wall force build]
-  n4 --> n5[steer blend gate]
-  n5 --> n6[bounds fix stage]
-  n6 --> n7[stop edge drift]`
+lifecycle_state: String.raw`stateDiagram-v2
+  n1: active square state
+  n2: dead burst state
+  n3: queued spawn state
+  n4: frozen newborn state
+  n5: moving newborn state
+  [*] --> n1
+  n1 --> n2: lifespan reached
+  n2 --> n3: queue in main
+  n3 --> n4: timer elapsed
+  n4 --> n5: freeze done
+  n5 --> n1: continue aging`
 };
 
 let renderCounter = 0;
