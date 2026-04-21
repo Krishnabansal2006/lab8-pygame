@@ -70,3 +70,22 @@ creating smooth curved movement instead of straight lines.
 - squares: list of alive Square objects
 - particles: list of small visual dots (short life 0.5s)
 - pending_spawns: list of floats (timestamps when to spawn new square)
+
+
+## Chase Feature - My Thinking
+
+### What needs to happen
+- Bigger squares should chase smaller ones
+- Smaller squares still flee from bigger ones
+- All squares keep some random wandering movement
+
+### How to implement
+- In update(), bigger squares need to detect nearby smaller squares
+- Calculate direction FROM bigger square TOWARD smaller square
+- Steer toward the closest smaller square
+- Keep jitter so it doesn't look robotic
+
+### Reusing existing code
+- The flee logic already calculates dx, dy, dist between squares
+- Instead of steering AWAY (flee), steer TOWARD (chase)
+- Same distance weighting can be used

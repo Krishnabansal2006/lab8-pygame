@@ -2,84 +2,102 @@ import random
 import math
 import pygame
 
-# Window and simulation settings
-WIDTH: int = 800
-HEIGHT: int = 600
-FPS: int = 60
-NUM_SQUARES: int = 20
-BG_COLOR: tuple[int, int, int] = (20, 20, 30)
-MIN_SIZE: int = 10
-MAX_SIZE: int = 50
-MAX_SPEED: float = 4.0
-FLEE_RADIUS: float = 70.0
+# ─── Constants ────────────────────────────────────────────────────────────────
+WIDTH: int = 800               
+HEIGHT: int = 600              
+FPS: int = 60                  
+NUM_SQUARES: int = 15          
+BG_COLOR: tuple[int, int, int] = (20, 20, 30)  
+MIN_SIZE: int = 10            
+MAX_SIZE: int = 50             
+MAX_SPEED: float = 4.0         
+FLEE_RADIUS: float = 70.0      # pixels - small squares detect threats within this range
+CHASE_RADIUS: float = 120.0    # pixels - big squares detect prey within this range
+SEP_RADIUS: float = 30.0       # pixels - squares push apart when closer than this
 
 
+# ─── Particle ─────────────────────────────────────────────────────────────────
 class Particle:
-    """Short-lived dot used for death burst and birth convergence effects."""
+    """
+    Short-lived visual dot.
+    Used for two effects:
+    - Death burst: particles fly outward from where a square died
+    - Birth convergence: particles start scattered and fly inward to birth point
+    """
 
     def __init__(self, x: float, y: float, color: tuple[int, int, int]) -> None:
         self.x: float = x
         self.y: float = y
         self.color: tuple[int, int, int] = color
-        # Random outward direction - overwritten for birth particles
+        # Default: random outward velocity (overridden for birth particles)
         angle: float = random.uniform(0, 2 * math.pi)
-        speed: float = random.uniform(80, 200)
+        speed: float = random.uniform(80, 200)  # pixels per second
         self.vx: float = math.cos(angle) * speed
         self.vy: float = math.sin(angle) * speed
         self.age: float = 0.0
-        self.lifespan: float = random.uniform(0.6, 1.2)
+        self.lifespan: float = random.uniform(0.6, 1.2)  # seconds alive
 
     def update(self, dt: float) -> None:
-        """Move particle and advance its age."""
+        """Move the particle forward and age it."""
         self.age += dt
         self.x += self.vx * dt
         self.y += self.vy * dt
 
     def is_dead(self) -> bool:
-        """Returns True when particle has exceeded its lifespan."""
+        """True when the particle has exceeded its lifespan."""
         return self.age >= self.lifespan
 
     def draw(self, surface: pygame.Surface) -> None:
-        """Draw particle as a shrinking circle that fades toward end of life."""
-        alpha: float = 1.0 - (self.age / self.lifespan)
+        """Draw as a small circle that shrinks and fades as it ages."""
+        alpha: float = 1.0 - (self.age / self.lifespan)  # 1.0 = fresh, 0.0 = dead
         radius: int = max(1, int(4 * alpha))
         pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), radius)
 
 
+# ─── Square ───────────────────────────────────────────────────────────────────
 class Square:
-    """Main moving entity in the simulation."""
+    """
+    The main entity. Each square:
+    - Moves with jitter (random direction changes)
+    - Flees from bigger squares nearby
+    - Chases smaller squares nearby
+    - Separates from squares that are too close
+    - Steers away from walls
+    - Has a lifespan and dies when it expires or is caught
+    """
 
     def __init__(self, x: float, y: float, size: int, color: tuple[int, int, int]) -> None:
         self.x: float = x
         self.y: float = y
         self.size: int = size
         self.color: tuple[int, int, int] = color
-        # Bigger squares are slower
+        # Bigger squares move slower (speed = MAX_SPEED * MIN_SIZE / size)
         self.max_speed: float = MAX_SPEED * (MIN_SIZE / self.size)
         self.speed: float = self.max_speed
-        self.jitter_timer: int = random.randint(20, 60)
-        # Start moving in a random direction
+        self.jitter_timer: int = random.randint(20, 60)  # frames until next direction nudge
         angle: float = random.uniform(0, 2 * math.pi)
-        self.vx: float = self.speed * math.cos(angle)
-        self.vy: float = self.speed * math.sin(angle)
-        # Each square lives between 5 and 20 seconds
-        self.lifespan: float = random.uniform(5, 20)
-        self.age: float = 0.0
-        # Freeze timer pauses movement after rebirth
-        self.freeze_timer: float = 0.0
+        self.vx: float = self.speed * math.cos(angle)   # velocity x component
+        self.vy: float = self.speed * math.sin(angle)   # velocity y component
+        self.lifespan: float = random.uniform(5, 20)    # seconds until natural death
+        self.age: float = 0.0                           # seconds alive so far
+        self.freeze_timer: float = 0.0                  # seconds to stay frozen after rebirth
 
     def update(self, screen_w: int, screen_h: int, squares: list, dt: float) -> None:
-        """Update position, steering, and age each frame."""
+        """
+        Main update called every frame.
+        Order: freeze check → age → jitter → flee → chase → separation 
+        → wall steering → blend velocity → clamp speed → move → bounce
+        """
 
-        # If frozen after rebirth, count down and skip movement
+        # 1) Freeze: new squares pause briefly after rebirth
         if self.freeze_timer > 0:
             self.freeze_timer -= dt
             return
 
-        # Age the square toward its death
+        # 2) Age toward natural death
         self.age += dt
 
-        # Jitter: slightly rotate direction every few frames for organic movement
+        # 3) Jitter: slightly rotate velocity every few frames for organic movement
         self.jitter_timer -= 1
         if self.jitter_timer <= 0:
             angle: float = math.atan2(self.vy, self.vx) + random.uniform(-0.1, 0.1)
@@ -87,7 +105,7 @@ class Square:
             self.vy = self.speed * math.sin(angle)
             self.jitter_timer = random.randint(30, 90)
 
-        # Flee: steer away from nearby bigger squares
+        # 4) Flee: steer away from bigger squares within FLEE_RADIUS
         flee_x: float = 0.0
         flee_y: float = 0.0
         for other in squares:
@@ -98,16 +116,44 @@ class Square:
                 dy: float = self.y - other.y
                 dist: float = math.hypot(dx, dy)
                 if 0 < dist < FLEE_RADIUS:
-                    # Closer threats push harder
-                    w: float = 1.0 - (dist / FLEE_RADIUS)
+                    w: float = 1.0 - (dist / FLEE_RADIUS)  # stronger when closer
                     flee_x += (dx / dist) * w
                     flee_y += (dy / dist) * w
 
-        # Wall steering: push away from edges before hitting them
+        # 5) Chase: steer toward smaller squares within CHASE_RADIUS
+        chase_x: float = 0.0
+        chase_y: float = 0.0
+        for other in squares:
+            if other is self:
+                continue
+            if other.size < self.size:
+                dx: float = self.x - other.x
+                dy: float = self.y - other.y
+                dist: float = math.hypot(dx, dy)
+                if 0 < dist < CHASE_RADIUS:
+                    w: float = 1.0 - (dist / CHASE_RADIUS)
+                    chase_x += (-dx / dist) * w  # negative = toward target
+                    chase_y += (-dy / dist) * w
+
+        # 6) Separation: push away from any square that overlaps
+        sep_x: float = 0.0
+        sep_y: float = 0.0
+        for other in squares:
+            if other is self:
+                continue
+            dx: float = self.x - other.x
+            dy: float = self.y - other.y
+            dist: float = math.hypot(dx, dy)
+            if 0 < dist < SEP_RADIUS:
+                w: float = 1.0 - (dist / SEP_RADIUS)
+                sep_x += (dx / dist) * w
+                sep_y += (dy / dist) * w
+
+        # 7) Wall steering: gentle push away from screen edges before impact
         wall_x: float = 0.0
         wall_y: float = 0.0
-        margin: int = 40
-        wall_strength: float = 0.35
+        margin: int = 60         # pixels from edge where push begins
+        wall_strength: float = 0.8
 
         if self.x < margin:
             wall_x += wall_strength * (1.0 - self.x / margin)
@@ -120,30 +166,37 @@ class Square:
             bottom_gap: float = screen_h - (self.y + self.size)
             wall_y -= wall_strength * (1.0 - bottom_gap / margin)
 
-        # Combine flee and wall into one steering force
-        steer_x: float = flee_x + wall_x
-        steer_y: float = flee_y + wall_y
+        # 8) Combine forces - flee takes priority over chase
+        # Separation and wall always apply
+        if flee_x != 0 or flee_y != 0:
+            steer_x: float = flee_x + wall_x + sep_x
+            steer_y: float = flee_y + wall_y + sep_y
+        else:
+            steer_x: float = chase_x + wall_x + sep_x
+            steer_y: float = chase_y + wall_y + sep_y
+
         steer_len: float = math.hypot(steer_x, steer_y)
 
         if steer_len > 0:
-            # Normalize then blend smoothly into current velocity
+            # Normalize to unit vector, then blend 35% new direction into velocity
             steer_x /= steer_len
             steer_y /= steer_len
-            blend: float = 0.22
+            blend: float = 0.35
             self.vx = (1 - blend) * self.vx + blend * steer_x * self.speed
             self.vy = (1 - blend) * self.vy + blend * steer_y * self.speed
 
-        # Clamp speed so no force exceeds max
+        # 9) Clamp: prevent any force from exceeding max speed
         v: float = math.hypot(self.vx, self.vy)
         if v > self.speed:
             self.vx = (self.vx / v) * self.speed
             self.vy = (self.vy / v) * self.speed
 
-        # Time-based movement: dt*60 keeps speed consistent at any frame rate
+        # 10) Move: time-based so speed is frame-rate independent
+        # dt * 60 means at 60 FPS the multiplier is 1.0 (no change)
         self.x += self.vx * dt * 60
         self.y += self.vy * dt * 60
 
-        # Hard bounce off walls
+        # 11) Hard bounce off all four walls
         if self.x < 0:
             self.x = 0
             self.vx = abs(self.vx)
@@ -158,7 +211,7 @@ class Square:
             self.y = screen_h - self.size
             self.vy = -abs(self.vy)
 
-        # Anti-stick: cancel velocity pointing into a wall
+        # 12) Anti-stick: zero out velocity pointing into a wall
         eps: float = 1e-6
         if self.x <= eps and self.vx < 0:
             self.vx = 0
@@ -170,11 +223,26 @@ class Square:
             self.vy = 0
 
     def is_dead(self) -> bool:
-        """Returns True when square has lived past its lifespan."""
+        """True when the square has lived past its natural lifespan."""
         return self.age >= self.lifespan
 
+    def is_caught(self, squares: list) -> bool:
+        """True if a bigger square is physically overlapping this square."""
+        cx1: float = self.x + self.size / 2
+        cy1: float = self.y + self.size / 2
+        for other in squares:
+            if other is self:
+                continue
+            if other.size > self.size:
+                cx2: float = other.x + other.size / 2
+                cy2: float = other.y + other.size / 2
+                dist: float = math.hypot(cx1 - cx2, cy1 - cy2)
+                if dist < (self.size + other.size) / 2:
+                    return True
+        return False
+
     def draw(self, surface: pygame.Surface) -> None:
-        """Draw the square as a filled rectangle."""
+        """Draw as a solid colored rectangle."""
         pygame.draw.rect(
             surface,
             self.color,
@@ -182,45 +250,55 @@ class Square:
         )
 
 
+# ─── Factory functions ────────────────────────────────────────────────────────
+
 def create_square(screen_w: int, screen_h: int) -> Square:
-    """Create one square at a random position with random size and color."""
+    """Create one square with random size, position and color."""
     size: int = random.randint(MIN_SIZE, MAX_SIZE)
     x: float = random.uniform(0, screen_w - size)
     y: float = random.uniform(0, screen_h - size)
-    color: tuple[int, int, int] = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
+    color: tuple[int, int, int] = (
+        random.randint(100, 255),
+        random.randint(100, 255),
+        random.randint(100, 255),
+    )
     return Square(x, y, size, color)
 
 
 def create_squares(n: int, screen_w: int, screen_h: int) -> list[Square]:
-    """Create n squares at random positions."""
+    """Create n squares."""
     return [create_square(screen_w, screen_h) for _ in range(n)]
 
 
 def create_death_particles(x: float, y: float, color: tuple[int, int, int]) -> list[Particle]:
-    """Burst of particles flying outward from death position."""
+    """30 particles bursting outward from death position."""
     return [Particle(x, y, color) for _ in range(30)]
 
 
 def create_birth_particles(x: float, y: float, color: tuple[int, int, int]) -> list[Particle]:
-    """Particles start scattered around birth position and converge inward."""
+    """
+    30 particles that start scattered and converge toward birth position.
+    Each particle starts at a random offset and its velocity points inward.
+    """
     particles: list[Particle] = []
     for _ in range(30):
-        # Start at random offset from birth point
         angle: float = random.uniform(0, 2 * math.pi)
         distance: float = random.uniform(50, 150)
         start_x: float = x + math.cos(angle) * distance
         start_y: float = y + math.sin(angle) * distance
         p: Particle = Particle(start_x, start_y, color)
-        # Override velocity to point toward birth center
         speed: float = random.uniform(80, 200)
         dx: float = x - start_x
         dy: float = y - start_y
         length: float = math.hypot(dx, dy)
+        # Override default outward velocity with inward direction
         p.vx = (dx / length) * speed
         p.vy = (dy / length) * speed
         particles.append(p)
     return particles
 
+
+# ─── Main loop ────────────────────────────────────────────────────────────────
 
 def main() -> None:
     pygame.init()
@@ -228,15 +306,16 @@ def main() -> None:
     screen: pygame.Surface = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Random Squares")
     clock: pygame.time.Clock = pygame.time.Clock()
+
     squares: list[Square] = create_squares(NUM_SQUARES, WIDTH, HEIGHT)
     particles: list[Particle] = []
-    # Each entry stores (spawn_time, x, y) for a pending rebirth
+    # pending_spawns: list of (target_time, x, y) for delayed rebirths
     pending_spawns: list[tuple[float, float, float]] = []
     current_time: float = 0.0
 
     running: bool = True
     while running:
-        dt: float = clock.tick(FPS) / 1000.0
+        dt: float = clock.tick(FPS) / 1000.0  # seconds since last frame
         current_time += dt
 
         for event in pygame.event.get():
@@ -245,34 +324,35 @@ def main() -> None:
 
         screen.fill(BG_COLOR)
 
-        # Update squares and handle deaths
+        # Update all squares and collect dead ones
         alive: list[Square] = []
         for sq in squares:
             sq.update(WIDTH, HEIGHT, squares, dt)
-            if sq.is_dead():
-                # Death burst at square center
+            if sq.is_dead() or sq.is_caught(squares):
+                # Square died - burst particles and schedule rebirth
                 cx: float = sq.x + sq.size / 2
                 cy: float = sq.y + sq.size / 2
                 particles.extend(create_death_particles(cx, cy, sq.color))
-                # Schedule rebirth at same position 2 seconds later
                 pending_spawns.append((current_time + 2.0, cx, cy))
             else:
                 alive.append(sq)
-        squares = alive
+        squares = alive  # safe swap - never mutate list during iteration
 
-        # Spawn any rebirths whose timer has elapsed
+        # Spawn rebirths whose delay has elapsed
         still_pending: list[tuple[float, float, float]] = []
         for spawn_time, bx, by in pending_spawns:
             if current_time >= spawn_time:
                 size: int = random.randint(MIN_SIZE, MAX_SIZE)
-                color: tuple[int, int, int] = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
-                # Spawn at death position
+                color: tuple[int, int, int] = (
+                    random.randint(100, 255),
+                    random.randint(100, 255),
+                    random.randint(100, 255),
+                )
                 new_sq: Square = Square(bx - size / 2, by - size / 2, size, color)
                 new_sq.vx = 0.0
                 new_sq.vy = 0.0
                 new_sq.age = 0.0
-                # Freeze for 1 second so birth particles can converge first
-                new_sq.freeze_timer = 1.0
+                new_sq.freeze_timer = 1.0  # pause while birth particles converge
                 particles.extend(create_birth_particles(bx, by, color))
                 squares.append(new_sq)
             else:
@@ -283,12 +363,13 @@ def main() -> None:
         for sq in squares:
             sq.draw(screen)
 
-        # Update and draw particles
+        # Update and draw particles, removing expired ones
         particles = [p for p in particles if not p.is_dead()]
         for p in particles:
             p.update(dt)
             p.draw(screen)
 
+        # HUD
         fps_text: pygame.Surface = font.render(f"FPS: {clock.get_fps():.1f}", True, (255, 255, 255))
         screen.blit(fps_text, (10, 10))
         count_text: pygame.Surface = font.render(f"Squares: {len(squares)}", True, (255, 255, 255))
