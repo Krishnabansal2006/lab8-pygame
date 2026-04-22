@@ -105,51 +105,36 @@ class Square:
             self.vy = self.speed * math.sin(angle)
             self.jitter_timer = random.randint(30, 90)
 
-        # 4) Flee: steer away from bigger squares within FLEE_RADIUS
+        # 4) Flee, Chase, Separation: calculate steering forces based on nearby squares
         flee_x: float = 0.0
         flee_y: float = 0.0
-        for other in squares:
-            if other is self:
-                continue
-            if other.size > self.size:
-                dx: float = self.x - other.x
-                dy: float = self.y - other.y
-                dist: float = math.hypot(dx, dy)
-                if 0 < dist < FLEE_RADIUS:
-                    w: float = 1.0 - (dist / FLEE_RADIUS)  # stronger when closer
-                    flee_x += (dx / dist) * w
-                    flee_y += (dy / dist) * w
-
-        # 5) Chase: steer toward smaller squares within CHASE_RADIUS
         chase_x: float = 0.0
         chase_y: float = 0.0
-        for other in squares:
-            if other is self:
-                continue
-            if other.size < self.size:
-                dx: float = self.x - other.x
-                dy: float = self.y - other.y
-                dist: float = math.hypot(dx, dy)
-                if 0 < dist < CHASE_RADIUS:
-                    w: float = 1.0 - (dist / CHASE_RADIUS)
-                    chase_x += (-dx / dist) * w  # negative = toward target
-                    chase_y += (-dy / dist) * w
-
-        # 6) Separation: push away from any square that overlaps
         sep_x: float = 0.0
         sep_y: float = 0.0
+
         for other in squares:
             if other is self:
                 continue
             dx: float = self.x - other.x
             dy: float = self.y - other.y
             dist: float = math.hypot(dx, dy)
-            if 0 < dist < SEP_RADIUS:
-                w: float = 1.0 - (dist / SEP_RADIUS)
+            if dist == 0:
+                continue
+            if other.size > self.size and 0 < dist < FLEE_RADIUS:
+                w: float = 1.0 - (dist / FLEE_RADIUS)
+                flee_x += (dx / dist) * w
+                flee_y += (dy / dist) * w
+            if other.size < self.size and 0 < dist < CHASE_RADIUS:
+                w = 1.0 - (dist / CHASE_RADIUS)
+                chase_x += (-dx / dist) * w
+                chase_y += (-dy / dist) * w
+            if dist < SEP_RADIUS:
+                w = 1.0 - (dist / SEP_RADIUS)
                 sep_x += (dx / dist) * w
                 sep_y += (dy / dist) * w
 
-        # 7) Wall steering: gentle push away from screen edges before impact
+        # 5) Wall steering: gentle push away from screen edges before impact
         wall_x: float = 0.0
         wall_y: float = 0.0
         margin: int = 60         # pixels from edge where push begins
@@ -166,14 +151,9 @@ class Square:
             bottom_gap: float = screen_h - (self.y + self.size)
             wall_y -= wall_strength * (1.0 - bottom_gap / margin)
 
-        # 8) Combine forces - flee takes priority over chase
-        # Separation and wall always apply
-        if flee_x != 0 or flee_y != 0:
-            steer_x: float = flee_x + wall_x + sep_x
-            steer_y: float = flee_y + wall_y + sep_y
-        else:
-            steer_x: float = chase_x + wall_x + sep_x
-            steer_y: float = chase_y + wall_y + sep_y
+        # 6) Combine forces - flee takes priority over chase
+        steer_x: float = flee_x * 0.5 + chase_x * 0.2 + wall_x * 0.25 + sep_x * 0.05
+        steer_y: float = flee_y * 0.5 + chase_y * 0.2 + wall_y * 0.25 + sep_y * 0.05
 
         steer_len: float = math.hypot(steer_x, steer_y)
 
@@ -185,18 +165,18 @@ class Square:
             self.vx = (1 - blend) * self.vx + blend * steer_x * self.speed
             self.vy = (1 - blend) * self.vy + blend * steer_y * self.speed
 
-        # 9) Clamp: prevent any force from exceeding max speed
+        # 7) Clamp: prevent any force from exceeding max speed
         v: float = math.hypot(self.vx, self.vy)
         if v > self.speed:
             self.vx = (self.vx / v) * self.speed
             self.vy = (self.vy / v) * self.speed
 
-        # 10) Move: time-based so speed is frame-rate independent
+        # 8) Move: time-based so speed is frame-rate independent
         # dt * 60 means at 60 FPS the multiplier is 1.0 (no change)
         self.x += self.vx * dt * 60
         self.y += self.vy * dt * 60
 
-        # 11) Hard bounce off all four walls
+        # 9) Hard bounce off all four walls
         if self.x < 0:
             self.x = 0
             self.vx = abs(self.vx)
@@ -211,7 +191,7 @@ class Square:
             self.y = screen_h - self.size
             self.vy = -abs(self.vy)
 
-        # 12) Anti-stick: zero out velocity pointing into a wall
+        # 10) Anti-stick: zero out velocity pointing into a wall
         eps: float = 1e-6
         if self.x <= eps and self.vx < 0:
             self.vx = 0
