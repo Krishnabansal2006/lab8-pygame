@@ -4,14 +4,14 @@ A Pygame simulation of colored squares that move, flee, age, and respawn.
 
 ## What it does
 
-A window opens showing 20 colored squares moving around the screen.
+A window opens showing 15 colored squares moving around the screen.
 Smaller squares flee from bigger ones when they get too close.
 Each square has a random lifespan — when it dies, it bursts into particles
 and a new square is spawned 2 seconds later to replace it.
 
 ## Features
 
-- 20 squares with random size, color, speed and direction
+- 15 squares with random size, color, speed and direction
 - Bigger squares move slower than smaller ones
 - Jitter: each square slightly rotates its direction over time
 - Flee: smaller squares detect and flee from nearby bigger ones
@@ -35,7 +35,12 @@ and a new square is spawned 2 seconds later to replace it.
 
 ## Files
 
-- `main.py` — simulation logic and game loop
+- `main.py` — thin entry point that starts the game
+- `sim/config.py` — constants and tuning values
+- `sim/entities.py` — data/entity classes (`Square`, `Particle`)
+- `sim/behavior.py` — square movement and steering rules
+- `sim/factories.py` — object/effect creation helpers
+- `sim/game.py` — runtime loop orchestration and rendering sequence
 - `JOURNAL.md` — log of all Copilot interactions
 - `prompts_history.md` — prompt history
 - `MYNOTES.md` — design thinking and feature notes

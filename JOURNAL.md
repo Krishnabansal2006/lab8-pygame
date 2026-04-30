@@ -470,3 +470,16 @@
 - **Hook Version**: 1.02
 - **Date**: 30-04-2026 22:16
 - **Prompt**: Can you do a full refactoring of this code, enforcing separation of concerns. I am a first year CS student, so add explanations in the final result that will help me understand the rationale behind the changes.
+
+### **New Interaction**
+- **Agent Version**: 2.3
+- **Date**: 30-04-2026 22:20
+- **User**: krishna.bansal@epita.fr
+- **Prompt**: Can you do a full refactoring of this code, enforcing separation of concerns. I am a first year CS
+student, so add explanations in the final result that will help me understand the rationale behind
+the changes.
+- **CoPilot Mode**: Edit
+- **CoPilot Model**: GPT-5.3-Codex
+- **Socratic Mode**: ON
+- **Changes Made**: Performed full separation-of-concerns refactor by creating sim/ package modules (config, entities, behavior, factories, game), reduced main.py to a thin launcher, and updated README file mapping; verified compile and diagnostics clean.
+- **Context and Reasons for Changes**: User requested a full refactor with strong separation and educational rationale, so architecture was split into clear responsibilities while preserving runtime behavior.
