@@ -112,3 +112,6 @@
 ### 30-04-2026 22:13
 - **Prompt**: implement the refactoring plan in refactoring.plan.md
 
+### 30-04-2026 22:16
+- **Prompt**: Can you do a full refactoring of this code, enforcing separation of concerns. I am a first year CS student, so add explanations in the final result that will help me understand the rationale behind the changes.
+
