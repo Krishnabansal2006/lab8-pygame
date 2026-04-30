@@ -1,0 +1,821 @@
+<!-- STUDY_TOOL_TEMPLATE_VERSION: 2.0 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lab 8 Pygame — Project Mastery Study Tool</title>
+<style>
+  /* ── CSS Variables ─────────────────────────────────────────── */
+  :root {
+    --bg:       #0d0d1a;
+    --surface:  #181830;
+    --surface2: #20204a;
+    --text:     #e8e8f8;
+    --muted:    #8888bb;
+    --accent:   #6c63ff;
+    --accent2:  #ff6584;
+    --correct:  #43d98b;
+    --wrong:    #ff5e7e;
+    --radius:   14px;
+    --shadow:   0 8px 32px rgba(0,0,0,0.55);
+    --card-h:   260px;
+  }
+
+  /* ── Reset & Base ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Avenir Next","Segoe UI","Trebuchet MS",sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(108,99,255,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(255,101,132,0.12) 0%, transparent 55%);
+  }
+
+  /* ── Layout ────────────────────────────────────────────────── */
+  #app { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+  .section { margin-bottom: 48px; }
+
+  /* ── Header ────────────────────────────────────────────────── */
+  #site-header { text-align: center; padding: 48px 20px 16px; }
+  #site-header h1 {
+    font-size: 2.4rem; font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  #site-header p { color: var(--muted); margin-top: 8px; font-size: 1rem; }
+
+  /* ── Study Summary ─────────────────────────────────────────── */
+  #study-summary {
+    background: var(--surface);
+    border: 1px solid rgba(108,99,255,0.25);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    box-shadow: var(--shadow);
+  }
+  #study-summary h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  #study-summary ul { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; }
+  #study-summary li {
+    background: var(--surface2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    color: var(--text);
+    border: 1px solid rgba(108,99,255,0.2);
+  }
+  #study-summary li::before { content: "◈ "; color: var(--accent); }
+
+  /* ── Mode Switcher ─────────────────────────────────────────── */
+  #mode-switcher { display: flex; justify-content: center; gap: 16px; }
+  .mode-btn {
+    padding: 12px 36px; border: none; border-radius: 40px; cursor: pointer;
+    font-family: inherit; font-size: 1rem; font-weight: 700; transition: all 0.2s;
+    background: var(--surface2); color: var(--muted);
+    border: 2px solid transparent;
+  }
+  .mode-btn.active {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.45);
+  }
+  .mode-btn:not(.active):hover { border-color: var(--accent); color: var(--text); }
+
+  /* ── Flashcards ────────────────────────────────────────────── */
+  #flashcards { display: none; }
+  #flashcards.visible { display: block; }
+  #flashcards h2 { font-size: 1.2rem; color: var(--accent2); margin-bottom: 20px; text-align: center; }
+  #flashcard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  /* Card flip mechanics */
+  .flashcard {
+    height: var(--card-h);
+    perspective: 1200px;
+    cursor: pointer;
+    outline: none;
+  }
+  .flashcard:focus .flashcard-inner { box-shadow: 0 0 0 3px var(--accent); }
+  .flashcard-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(.4,0,.2,1);
+    border-radius: var(--radius);
+  }
+  .flashcard.is-flipped .flashcard-inner { transform: rotateY(180deg); }
+  .flashcard-front, .flashcard-back {
+    position: absolute; inset: 0;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border-radius: var(--radius);
+    padding: 22px;
+    display: flex; flex-direction: column; justify-content: center;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .flashcard-front {
+    background: linear-gradient(145deg, var(--surface2), var(--surface));
+    border: 1px solid rgba(108,99,255,0.3);
+  }
+  .flashcard-back {
+    background: linear-gradient(145deg, #1a1a40, #12122e);
+    border: 1px solid rgba(255,101,132,0.3);
+    transform: rotateY(180deg);
+  }
+  .card-label {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .card-label span { color: var(--accent); }
+  .card-question { font-size: 0.97rem; font-weight: 600; line-height: 1.5; color: var(--text); overflow-wrap: break-word; }
+  .card-answer { font-size: 0.9rem; line-height: 1.55; color: var(--text); overflow-wrap: break-word; }
+  .card-code {
+    margin-top: 10px; padding: 8px 12px;
+    background: rgba(0,0,0,0.4); border-radius: 8px;
+    font-family: "Fira Mono","Cascadia Code","Courier New",monospace;
+    font-size: 0.78rem; color: #b0c4ff;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+  }
+  .flip-hint {
+    margin-top: 14px; font-size: 0.75rem; color: var(--muted);
+    text-align: center; letter-spacing: 0.5px;
+  }
+
+  /* ── Quiz ──────────────────────────────────────────────────── */
+  #quiz { display: none; }
+  #quiz.visible { display: block; }
+  #quiz h2 { font-size: 1.2rem; color: var(--accent2); margin-bottom: 20px; text-align: center; }
+  #quiz-progress-bar-wrap {
+    background: var(--surface2); border-radius: 20px; height: 6px; margin-bottom: 28px; overflow: hidden;
+  }
+  #quiz-progress-bar {
+    height: 6px; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 20px; transition: width 0.35s ease;
+  }
+  #quiz-content { min-height: 260px; }
+
+  .q-card {
+    display: none;
+    background: var(--surface); border: 1px solid rgba(108,99,255,0.2);
+    border-radius: var(--radius); padding: 28px 32px; box-shadow: var(--shadow);
+  }
+  .q-card.active { display: block; }
+  .q-meta { font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
+  .q-meta strong { color: var(--accent); }
+  .q-text { font-size: 1.05rem; font-weight: 600; line-height: 1.5; margin-bottom: 20px; }
+  .q-options { display: flex; flex-direction: column; gap: 12px; }
+  .q-option {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 16px; border-radius: 10px;
+    background: var(--surface2); border: 1.5px solid transparent;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    font-size: 0.93rem; line-height: 1.4;
+  }
+  .q-option:hover { border-color: var(--accent); }
+  .q-option input[type="radio"] { margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+  .q-option.correct { border-color: var(--correct) !important; background: rgba(67,217,139,0.12); }
+  .q-option.wrong   { border-color: var(--wrong)   !important; background: rgba(255,94,126,0.12); }
+  .q-explanation {
+    margin-top: 16px; padding: 14px 18px;
+    background: rgba(108,99,255,0.1); border-left: 3px solid var(--accent);
+    border-radius: 8px; font-size: 0.88rem; line-height: 1.55; color: var(--text);
+    display: none;
+  }
+  .q-explanation.show { display: block; }
+
+  /* Nav */
+  .quiz-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 28px;
+  }
+  .quiz-nav button {
+    padding: 10px 28px; border: none; border-radius: 30px; cursor: pointer;
+    font-family: inherit; font-size: 0.95rem; font-weight: 700;
+    background: var(--surface2); color: var(--text); border: 1.5px solid transparent;
+    transition: all 0.2s;
+  }
+  .quiz-nav button:hover:not(:disabled) { border-color: var(--accent); }
+  .quiz-nav button:disabled { opacity: 0.35; cursor: default; }
+  #btn-submit {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; padding: 12px 36px; border-radius: 30px; border: none;
+    cursor: pointer; font-family: inherit; font-size: 0.95rem; font-weight: 700;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.4); display: none;
+  }
+  #btn-submit:hover { opacity: 0.9; }
+  #q-counter { font-size: 0.85rem; color: var(--muted); }
+
+  /* Results */
+  #quiz-results { display: none; margin-top: 28px; }
+  #quiz-results.show { display: block; }
+  #score-banner {
+    text-align: center; padding: 32px;
+    background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+    border: 1px solid rgba(108,99,255,0.25); margin-bottom: 28px;
+  }
+  #score-banner .score-num { font-size: 3.5rem; font-weight: 900; color: var(--accent); }
+  #score-banner p { color: var(--muted); margin-top: 6px; font-size: 1rem; }
+  .result-item {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 18px 22px; margin-bottom: 16px;
+    border-left: 4px solid var(--muted);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .result-item.r-correct { border-left-color: var(--correct); }
+  .result-item.r-wrong   { border-left-color: var(--wrong); }
+  .result-item .r-q    { font-weight: 700; margin-bottom: 6px; font-size: 0.93rem; }
+  .result-item .r-ans  { font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+  .result-item .r-expl { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+  #btn-retake {
+    display: block; margin: 28px auto 0;
+    padding: 12px 40px; border: none; border-radius: 30px; cursor: pointer;
+    font-family: inherit; font-size: 1rem; font-weight: 700;
+    background: var(--surface2); color: var(--text); border: 2px solid var(--accent);
+    transition: background 0.2s;
+  }
+  #btn-retake:hover { background: var(--accent); color: #fff; }
+
+  /* ── Responsive ────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    #site-header h1 { font-size: 1.6rem; }
+    #flashcard-grid { grid-template-columns: 1fr; }
+    .q-card { padding: 20px; }
+    :root { --card-h: 300px; }
+  }
+</style>
+</head>
+<body>
+
+<header id="site-header">
+  <h1>Lab 8 · Pygame Squares</h1>
+  <p>Project Mastery Study Tool &nbsp;·&nbsp; <strong>Medium</strong> difficulty &nbsp;·&nbsp; 15 questions</p>
+</header>
+
+<main id="app">
+
+  <!-- ── Study Summary ──────────────────────────────────────── -->
+  <section id="study-summary" class="section">
+    <h2>Technical Themes</h2>
+    <ul>
+      <li>OOP — Particle &amp; Square classes</li>
+      <li>Pygame rendering pipeline</li>
+      <li>Vector math &amp; steering forces</li>
+      <li>Inverse-speed formula (size ↔ speed)</li>
+      <li>Time-based movement with dt</li>
+      <li>Particle lifecycle (birth/death)</li>
+      <li>Flee / Chase / Separation behaviours</li>
+      <li>Velocity blending (35% blend)</li>
+      <li>Delayed rebirth queue (pending_spawns)</li>
+      <li>Wall steering &amp; anti-stick logic</li>
+      <li>Complexity — O(N) per square, O(N²) main loop</li>
+    </ul>
+  </section>
+
+  <!-- ── Mode Switcher ──────────────────────────────────────── -->
+  <section id="mode-switcher" class="section">
+    <button class="mode-btn active" id="btn-mode-flash" onclick="showMode('flashcards')">🃏 Flashcards</button>
+    <button class="mode-btn"        id="btn-mode-quiz"  onclick="showMode('quiz')">📝 Quiz</button>
+  </section>
+
+  <!-- ── Flashcards ─────────────────────────────────────────── -->
+  <section id="flashcards" class="section visible">
+    <h2>Click a card to flip it</h2>
+    <div id="flashcard-grid"></div>
+  </section>
+
+  <!-- ── Quiz ──────────────────────────────────────────────────-->
+  <section id="quiz" class="section">
+    <h2>Quiz — <span id="quiz-title">Question 1 of 15</span></h2>
+    <div id="quiz-progress-bar-wrap"><div id="quiz-progress-bar" style="width:0%"></div></div>
+    <div id="quiz-content"></div>
+    <div class="quiz-nav">
+      <button id="btn-prev" onclick="changeQ(-1)" disabled>← Prev</button>
+      <span id="q-counter">1 / 15</span>
+      <button id="btn-next" onclick="changeQ(1)">Next →</button>
+      <button id="btn-submit" onclick="submitQuiz()">Submit Quiz ✓</button>
+    </div>
+    <div id="quiz-results"></div>
+  </section>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════
+
+const flashcards = [
+  {
+    file: "main.py",
+    anchor: "Particle.__init__",
+    q: "How does Particle.__init__ set the initial velocity?",
+    a: "It picks a random angle in [0, 2π] and a random speed in [80, 200] px/s, then computes vx = cos(angle)*speed and vy = sin(angle)*speed — always outward.",
+    code: "angle = random.uniform(0, 2*math.pi)\nspeed = random.uniform(80, 200)\nself.vx = math.cos(angle) * speed"
+  },
+  {
+    file: "main.py",
+    anchor: "Particle.draw",
+    q: "How does Particle.draw create a fade-and-shrink effect?",
+    a: "alpha = 1 - (age/lifespan) gives a value from 1.0 (fresh) → 0.0 (dead). The drawn radius = max(1, int(4 * alpha)), so the dot shrinks as it ages.",
+    code: "alpha = 1.0 - (self.age / self.lifespan)\nradius = max(1, int(4 * alpha))"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.__init__ — speed formula",
+    q: "Why do bigger squares move slower in Square.__init__?",
+    a: "max_speed = MAX_SPEED * (MIN_SIZE / size). Dividing by size means larger values produce smaller speeds. At size=10 (min), speed equals MAX_SPEED; at size=50 (max), speed = 4.0 * 10/50 = 0.8.",
+    code: "self.max_speed = MAX_SPEED * (MIN_SIZE / self.size)"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.update — 10-step order",
+    q: "What are the 10 ordered steps inside Square.update?",
+    a: "1) Freeze check 2) Age 3) Jitter 4) Flee/Chase/Separation forces 5) Wall steering 6) Combine forces 7) Clamp speed 8) Move (dt×60) 9) Hard bounce 10) Anti-stick.",
+    code: "# Steps: freeze → age → jitter → flee/chase/sep\n# → wall → combine → clamp → move → bounce → anti-stick"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.update — flee weight",
+    q: "What weight does the flee force have vs chase in the combined steer?",
+    a: "flee gets 0.5, chase only 0.2. This means survival instinct dominates — a square running away will do so more strongly than it pursues prey.",
+    code: "steer_x = flee_x*0.5 + chase_x*0.2 + wall_x*0.25 + sep_x*0.05"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.update — velocity blend",
+    q: "How is the steering force blended into the existing velocity?",
+    a: "A blend factor of 0.35 is used: new_vx = 0.65*vx + 0.35*steer_dir*speed. This gives smooth steering — the square cannot instantly snap to a new direction.",
+    code: "blend = 0.35\nself.vx = (1-blend)*self.vx + blend*steer_x*self.speed"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.update — time-based movement",
+    q: "Why does position update use `self.vx * dt * 60` instead of just `self.vx`?",
+    a: "dt is seconds since last frame. Multiplying by 60 means at exactly 60 FPS the factor is 1.0 — the same as a fixed-step game. At other frame rates the movement scales proportionally, keeping speed frame-rate independent.",
+    code: "self.x += self.vx * dt * 60"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.update — anti-stick",
+    q: "What problem does the anti-stick section solve, and how?",
+    a: "After a hard bounce, floating-point errors can leave the square exactly on the wall with velocity pointing into it — causing it to stick. The code zeroes out vx/vy when the square is at an edge and moving toward it.",
+    code: "eps = 1e-6\nif self.x <= eps and self.vx < 0:\n    self.vx = 0"
+  },
+  {
+    file: "main.py",
+    anchor: "Square.is_caught",
+    q: "How does is_caught decide a square has been captured?",
+    a: "It computes center-to-center distance using math.hypot and checks if dist < (self.size + other.size)/2. This is a circle-overlap test on the squares' centers — only bigger squares can catch this one.",
+    code: "dist = math.hypot(cx1-cx2, cy1-cy2)\nif dist < (self.size + other.size) / 2: return True"
+  },
+  {
+    file: "main.py",
+    anchor: "create_birth_particles",
+    q: "How are birth particles different from death particles?",
+    a: "Birth particles start at a random scatter radius (50–150 px away) and have their velocity overridden to point inward toward the birth point, creating a convergence effect — the opposite of a death burst.",
+    code: "p.vx = (dx/length)*speed  # inward direction\np.vy = (dy/length)*speed"
+  },
+  {
+    file: "main.py",
+    anchor: "main() — pending_spawns",
+    q: "How is the 2-second rebirth delay implemented in main()?",
+    a: "When a square dies, its center and a target time (current_time + 2.0) are appended to pending_spawns. Each frame, entries whose time has elapsed are popped and a new Square is spawned — separating death from birth.",
+    code: "pending_spawns.append((current_time + 2.0, cx, cy))\n# later:\nif current_time >= spawn_time: ... squares.append(new_sq)"
+  },
+  {
+    file: "main.py",
+    anchor: "main() — alive list swap",
+    q: "Why does the main loop build an `alive` list instead of removing from `squares` directly?",
+    a: "Removing items from a list while iterating over it causes skipped indices (Python shifts elements). Building a separate alive list and replacing squares = alive is a safe, idiomatic Python pattern.",
+    code: "alive = []\nfor sq in squares:\n    if sq.is_dead() or sq.is_caught(squares): ...\n    else: alive.append(sq)\nsquares = alive"
+  }
+];
+
+// ─── Quiz Data ────────────────────────────────────────────────
+const quizData = [
+  // ── Behavior Tracing (4) ──────────────────────────────────
+  {
+    id: "q-0",
+    type: "mcq",
+    meta: "main.py · Square.__init__ — speed formula",
+    category: "Behavior Tracing",
+    text: "Given MAX_SPEED = 4.0 and MIN_SIZE = 10, what is the max_speed of a Square with size = 50?",
+    options: ["4.0", "0.8", "2.0", "40.0"],
+    answer: 1,
+    explanation: "max_speed = MAX_SPEED * (MIN_SIZE / size) = 4.0 * (10 / 50) = 4.0 * 0.2 = 0.8. Bigger squares are penalised with lower speed."
+  },
+  {
+    id: "q-1",
+    type: "mcq",
+    meta: "main.py · Square.update — freeze_timer",
+    category: "Behavior Tracing",
+    text: "In Square.update, if freeze_timer > 0 at the start of a frame, what happens to that square?",
+    options: [
+      "It updates normally but ignores steering forces",
+      "The entire update returns early — age, jitter, movement and all forces are skipped",
+      "Only the jitter step is skipped",
+      "It teleports to a random position"
+    ],
+    answer: 1,
+    explanation: "The very first check is `if self.freeze_timer > 0: self.freeze_timer -= dt; return`. The function returns immediately, skipping aging, jitter, forces, and movement — the square is completely frozen."
+  },
+  {
+    id: "q-2",
+    type: "mcq",
+    meta: "main.py · Particle.draw — alpha",
+    category: "Behavior Tracing",
+    text: "In Particle.draw, what is the value of `alpha` when a particle is exactly halfway through its lifespan?",
+    options: ["1.0", "0.0", "0.5", "0.25"],
+    answer: 2,
+    explanation: "alpha = 1.0 - (age / lifespan). At the midpoint, age == lifespan/2, so alpha = 1.0 - 0.5 = 0.5. The particle is half-bright with radius = max(1, int(4*0.5)) = 2."
+  },
+  {
+    id: "q-3",
+    type: "mcq",
+    meta: "main.py · main() — pending_spawns timing",
+    category: "Behavior Tracing",
+    text: "A square dies at current_time = 5.0 s. At what current_time will a replacement square first appear on screen?",
+    options: ["5.0 s — immediately", "5.5 s — after half a second", "7.0 s — after two seconds", "6.0 s — after one second"],
+    answer: 2,
+    explanation: "`pending_spawns.append((current_time + 2.0, cx, cy))` stores spawn_time = 7.0. The replacement is spawned only when `current_time >= 7.0`. There is also a 1-second freeze_timer after spawning during which birth particles converge."
+  },
+
+  // ── Debugging / Fault Localisation (3) ───────────────────
+  {
+    id: "q-4",
+    type: "mcq",
+    meta: "main.py · Square.update — dist == 0 guard",
+    category: "Debugging",
+    text: "What Python error would occur in Square.update if the line `if dist == 0: continue` were removed and two squares occupied the exact same position?",
+    options: [
+      "IndexError — invalid list index",
+      "ZeroDivisionError — dividing by dist = 0 in the weight calculations",
+      "AttributeError — dx/dy not defined",
+      "RecursionError — infinite loop"
+    ],
+    answer: 1,
+    explanation: "When dist = 0, the code computes `(dx / dist)` to get a unit vector — dividing by zero raises ZeroDivisionError. The guard `if dist == 0: continue` skips that iteration safely."
+  },
+  {
+    id: "q-5",
+    type: "mcq",
+    meta: "main.py · main() — alive list swap",
+    category: "Debugging",
+    text: "If the main loop removed dead squares with `squares.remove(sq)` during iteration instead of building the `alive` list, what bug would most likely appear?",
+    options: [
+      "Squares would never die",
+      "Some squares would be skipped — checked twice or not at all — because list indices shift during removal",
+      "The particle burst would not trigger",
+      "pending_spawns would overflow"
+    ],
+    answer: 1,
+    explanation: "Mutating a list while iterating over it causes the iterator to skip elements (Python advances the index after removal, so the next element slides into the removed slot unseen). The safe idiom is to collect survivors in a new list and replace the original."
+  },
+  {
+    id: "q-6",
+    type: "mcq",
+    meta: "main.py · Square.update — dt * 60",
+    category: "Debugging",
+    text: "If `self.x += self.vx * dt * 60` were changed to `self.x += self.vx` (removing dt*60), what would happen at 30 FPS vs 120 FPS?",
+    options: [
+      "Squares would move at exactly the same speed regardless of frame rate",
+      "Squares would move twice as fast at 120 FPS vs 30 FPS — frame-rate dependent movement",
+      "Squares would stop moving entirely",
+      "Only particle effects would be affected"
+    ],
+    answer: 1,
+    explanation: "Without dt*60, position is incremented by the raw velocity each frame. At 120 FPS you get 4× more updates per second than at 30 FPS, so squares move 4× faster. The dt*60 factor normalises speed to be frame-rate independent."
+  },
+
+  // ── Design Tradeoffs (3) ──────────────────────────────────
+  {
+    id: "q-7",
+    type: "mcq",
+    meta: "main.py · create_birth_particles — velocity override",
+    category: "Design Tradeoff",
+    text: "Why does create_birth_particles call Particle() and then immediately override p.vx and p.vy?",
+    options: [
+      "It is a bug — the constructor should have been given an 'inward' parameter",
+      "Particle.__init__ always sets outward random velocity; birth particles need inward velocity pointing at the birth point, so the override is intentional",
+      "The override is needed to match the death burst speed",
+      "Particle's constructor cannot accept velocity arguments"
+    ],
+    answer: 1,
+    explanation: "Particle.__init__ hard-codes outward velocity (angle is fully random). Birth convergence requires inward velocity computed from the particle's start offset to the birth point. The override after construction is the deliberate design choice to reuse the Particle class for two distinct effects."
+  },
+  {
+    id: "q-8",
+    type: "mcq",
+    meta: "main.py · Square.update — force weights 0.5 / 0.2",
+    category: "Design Tradeoff",
+    text: "In `steer_x = flee_x*0.5 + chase_x*0.2 + ...`, why is the flee weight larger than the chase weight?",
+    options: [
+      "A programming mistake — both should be equal",
+      "Flee (0.5) must dominate chase (0.2) so a small square being chased prioritises escape over hunting even smaller prey",
+      "Chase needs to be weaker because bigger squares are slower anyway",
+      "The weights are placeholders to be tuned later"
+    ],
+    answer: 1,
+    explanation: "Flee takes priority (0.5 > 0.2) to model a 'survival first' instinct — when a bigger square is nearby, a smaller square should flee rather than simultaneously trying to hunt an even smaller one. This creates believable predator-prey dynamics."
+  },
+  {
+    id: "q-9",
+    type: "mcq",
+    meta: "main.py · main() — pending_spawns delayed rebirth",
+    category: "Design Tradeoff",
+    text: "Why use a pending_spawns list for delayed rebirth instead of immediately spawning a replacement when a square dies?",
+    options: [
+      "Python lists are faster than dictionaries for this use-case",
+      "Immediate spawning would prevent the death burst particles from being visible; the 2-second delay lets the particle effect play while birth particles converge",
+      "Pygame requires a frame delay for new surfaces",
+      "The spawn must wait for the screen to be fully cleared"
+    ],
+    answer: 1,
+    explanation: "The 2-second gap serves two purposes: the death burst is visually prominent for ~1 second before birth particles start converging, and the new square appears with freeze_timer=1.0 so it stays still while birth particles flow toward it. Immediate spawning would disrupt this two-phase animation."
+  },
+
+  // ── Edge Cases / Robustness (3) ───────────────────────────
+  {
+    id: "q-10",
+    type: "mcq",
+    meta: "main.py · Square.update — steer_len == 0 guard",
+    category: "Edge Case",
+    text: "In Square.update, if no nearby squares and no wall pressure exist, steer_len equals 0. What does `if steer_len > 0:` prevent?",
+    options: [
+      "It prevents freeze_timer from resetting",
+      "It prevents ZeroDivisionError when normalising the zero-length steer vector with steer_x /= steer_len",
+      "It prevents the square from exceeding MAX_SPEED",
+      "It prevents jitter from being skipped"
+    ],
+    answer: 1,
+    explanation: "If all steering components are zero, steer_len = 0. The code then tries to normalise: `steer_x /= steer_len` — dividing by zero. The guard `if steer_len > 0:` skips the entire blend block when there is no net force, leaving the velocity unchanged."
+  },
+  {
+    id: "q-11",
+    type: "mcq",
+    meta: "main.py · Square.update — hard bounce",
+    category: "Edge Case",
+    text: "When a square's right edge exceeds screen_w, the bounce sets `self.x = screen_w - self.size` and `self.vx = -abs(self.vx)`. Why use -abs() instead of simply negating vx?",
+    options: [
+      "abs() is faster than negation in Python",
+      "Negation alone could leave vx positive if it was already negative (e.g., after two rapid bounces), causing the square to tunnel through; -abs() guarantees leftward velocity",
+      "abs() handles the freeze_timer edge case",
+      "It rounds the velocity to an integer"
+    ],
+    answer: 1,
+    explanation: "Using `-abs(self.vx)` unconditionally forces velocity to be leftward (negative). Simply doing `self.vx = -self.vx` could flip a negative vx to positive, pushing the square further into the wall on the next frame — a classic tunnelling bug."
+  },
+  {
+    id: "q-12",
+    type: "mcq",
+    meta: "main.py · Square.is_caught — center distance check",
+    category: "Edge Case",
+    text: "is_caught checks center-to-center distance < (self.size + other.size)/2. What would happen if it checked corner-to-corner distance instead (e.g., math.hypot(self.x - other.x, self.y - other.y))?",
+    options: [
+      "No change — the result is the same for squares",
+      "Catches would be missed when squares overlap at edges but corners are far apart; collision detection would be too strict",
+      "Catches would be false-triggered from further away because corner distances are always larger",
+      "The simulation would crash with a ValueError"
+    ],
+    answer: 1,
+    explanation: "Corner-to-corner distance is generally larger than center-to-center distance. Using corners would require squares to be closer (corners overlapping) to register a catch, meaning many real overlaps would go undetected. The center + sum-of-half-sizes formula is a correct bounding-circle approximation."
+  },
+
+  // ── Big-O Complexity (2) ──────────────────────────────────
+  {
+    id: "q-13",
+    type: "mcq",
+    meta: "main.py · Square.update — O(N) per call",
+    category: "Complexity",
+    text: "What is the time complexity of a single call to Square.update with respect to N (the number of squares in the list)?",
+    options: ["O(1)", "O(log N)", "O(N)", "O(N²)"],
+    answer: 2,
+    explanation: "Square.update contains `for other in squares:` which iterates once over all N squares to compute flee/chase/separation forces. Everything else (jitter, wall checks, move) is O(1). So each call is O(N)."
+  },
+  {
+    id: "q-14",
+    type: "mcq",
+    meta: "main.py · main() — overall update complexity",
+    category: "Complexity",
+    text: "The main loop calls sq.update(..., squares, dt) for every square in a list of N squares. What is the overall time complexity of the square-update phase per frame?",
+    options: ["O(N)", "O(N log N)", "O(N²)", "O(2^N)"],
+    answer: 2,
+    explanation: "There are N squares; each calls update which is O(N). Total = N × O(N) = O(N²). For NUM_SQUARES = 15 this is negligible, but the code would slow noticeably with N in the thousands. An optimisation would use spatial partitioning (e.g., a grid or quadtree) to reduce to O(N log N) average."
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════
+// MODE SWITCHER
+// ═══════════════════════════════════════════════════════════════
+function showMode(mode) {
+  const flash = document.getElementById('flashcards');
+  const quiz  = document.getElementById('quiz');
+  const btnF  = document.getElementById('btn-mode-flash');
+  const btnQ  = document.getElementById('btn-mode-quiz');
+  if (mode === 'flashcards') {
+    flash.classList.add('visible'); quiz.classList.remove('visible');
+    btnF.classList.add('active');   btnQ.classList.remove('active');
+  } else {
+    quiz.classList.add('visible');  flash.classList.remove('visible');
+    btnQ.classList.add('active');   btnF.classList.remove('active');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLASHCARDS — SETUP (Phase 1)
+// ═══════════════════════════════════════════════════════════════
+function initFlashcards() {
+  const grid = document.getElementById('flashcard-grid');
+  grid.innerHTML = '';
+  flashcards.forEach((fc, i) => {
+    const card = document.createElement('div');
+    card.className = 'flashcard';
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', 'Flashcard ' + (i+1) + '. Press Enter or Space to flip.');
+    card.innerHTML = `
+      <div class="flashcard-inner">
+        <div class="flashcard-front">
+          <div class="card-label">📄 <span>${fc.file}</span> · ${fc.anchor}</div>
+          <div class="card-question">${fc.q}</div>
+          <div class="flip-hint">Click or press Enter/Space to reveal →</div>
+        </div>
+        <div class="flashcard-back">
+          <div class="card-label">✅ Answer</div>
+          <div class="card-answer">${fc.a}</div>
+          ${fc.code ? `<div class="card-code">${escHtml(fc.code)}</div>` : ''}
+        </div>
+      </div>`;
+    card.addEventListener('click', () => card.classList.toggle('is-flipped'));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.classList.toggle('is-flipped'); }
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUIZ — STATE
+// ═══════════════════════════════════════════════════════════════
+let currentQ = 0;
+let userAnswers = new Array(quizData.length).fill(null);
+let submitted = false;
+
+// ─── Phase 1: Build all question nodes once ───────────────────
+function initializeQuizDOM() {
+  const container = document.getElementById('quiz-content');
+  container.innerHTML = '';
+  quizData.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'q-card' + (i === 0 ? ' active' : '');
+    card.id = q.id;
+
+    const optionsHtml = q.options.map((opt, oi) => `
+      <label class="q-option" id="${q.id}-opt-${oi}">
+        <input type="radio" name="${q.id}" value="${oi}" onchange="recordAnswer(${i},${oi})"/>
+        ${opt}
+      </label>`).join('');
+
+    card.innerHTML = `
+      <div class="q-meta">Category: <strong>${q.category}</strong> &nbsp;·&nbsp; ${q.meta}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-options">${optionsHtml}</div>
+      <div class="q-explanation" id="${q.id}-expl">${q.explanation}</div>`;
+    container.appendChild(card);
+  });
+  updateQuizNav();
+}
+
+// ─── Phase 2: State-only updates ─────────────────────────────
+function recordAnswer(qIndex, optIndex) {
+  if (submitted) return;
+  userAnswers[qIndex] = optIndex;
+}
+
+function changeQ(delta) {
+  const next = currentQ + delta;
+  if (next < 0 || next >= quizData.length) return;
+  document.getElementById(quizData[currentQ].id).classList.remove('active');
+  currentQ = next;
+  document.getElementById(quizData[currentQ].id).classList.add('active');
+  updateQuizNav();
+}
+
+function updateQuizNav() {
+  const total = quizData.length;
+  document.getElementById('btn-prev').disabled = (currentQ === 0);
+  document.getElementById('btn-next').disabled = (currentQ === total - 1);
+  document.getElementById('btn-submit').style.display = (currentQ === total - 1) ? 'inline-block' : 'none';
+  document.getElementById('btn-next').style.display   = (currentQ === total - 1) ? 'none' : 'inline-block';
+  document.getElementById('q-counter').textContent = `${currentQ + 1} / ${total}`;
+  document.getElementById('quiz-title').textContent = `Question ${currentQ + 1} of ${total}`;
+  const pct = ((currentQ + 1) / total) * 100;
+  document.getElementById('quiz-progress-bar').style.width = pct + '%';
+}
+
+function submitQuiz() {
+  if (submitted) return;
+  submitted = true;
+
+  // Mark each option correct/wrong and show explanations
+  let score = 0;
+  quizData.forEach((q, i) => {
+    const chosen = userAnswers[i];
+    if (chosen === q.answer) score++;
+    q.options.forEach((_, oi) => {
+      const el = document.getElementById(`${q.id}-opt-${oi}`);
+      if (oi === q.answer)  el.classList.add('correct');
+      else if (oi === chosen) el.classList.add('wrong');
+    });
+    // disable radio buttons
+    document.querySelectorAll(`input[name="${q.id}"]`).forEach(r => r.disabled = true);
+    document.getElementById(`${q.id}-expl`).classList.add('show');
+  });
+
+  // Hide nav, show results
+  document.querySelector('.quiz-nav').style.display = 'none';
+  showResults(score);
+}
+
+function showResults(score) {
+  const total = quizData.length;
+  const pct = Math.round((score/total)*100);
+  const grade = pct >= 90 ? '🏆 Excellent!' : pct >= 70 ? '👍 Good work!' : pct >= 50 ? '📚 Keep studying!' : '🔄 Review the flashcards!';
+
+  let html = `
+    <div id="score-banner">
+      <div class="score-num">${score} / ${total}</div>
+      <p>${grade} — ${pct}%</p>
+    </div>`;
+
+  quizData.forEach((q, i) => {
+    const chosen = userAnswers[i];
+    const correct = chosen === q.answer;
+    const chosenText = chosen !== null ? q.options[chosen] : '(no answer)';
+    html += `
+      <div class="result-item ${correct ? 'r-correct' : 'r-wrong'}">
+        <div class="r-q">${correct ? '✅' : '❌'} Q${i+1}: ${q.text}</div>
+        <div class="r-ans">Your answer: <em>${chosenText}</em> · Correct: <em>${q.options[q.answer]}</em></div>
+        <div class="r-expl">${q.explanation}</div>
+      </div>`;
+  });
+
+  html += `<button id="btn-retake" onclick="retakeQuiz()">↺ Retake Quiz</button>`;
+
+  const results = document.getElementById('quiz-results');
+  results.innerHTML = html;
+  results.classList.add('show');
+}
+
+function retakeQuiz() {
+  submitted = false;
+  currentQ = 0;
+  userAnswers = new Array(quizData.length).fill(null);
+  document.getElementById('quiz-results').classList.remove('show');
+  document.getElementById('quiz-results').innerHTML = '';
+  document.querySelector('.quiz-nav').style.display = 'flex';
+  initializeQuizDOM();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOM VALIDATION (Required by spec §6)
+// ═══════════════════════════════════════════════════════════════
+function validateDOM() {
+  const required = ['#quiz-content', '.quiz-nav', '#quiz-results'];
+  required.forEach(sel => {
+    if (!document.querySelector(sel))
+      console.error('[StudyTool] Missing required element:', sel);
+  });
+  quizData.forEach((q, i) => {
+    if (!document.getElementById(q.id))
+      console.error('[StudyTool] Missing question node:', q.id);
+  });
+  const cards = document.querySelectorAll('.flashcard');
+  if (!cards.length) { console.error('[StudyTool] No .flashcard nodes found'); }
+  cards.forEach((c, i) => {
+    if (!c.querySelector('.flashcard-front')) console.error('[StudyTool] Card', i, 'missing .flashcard-front');
+    if (!c.querySelector('.flashcard-back'))  console.error('[StudyTool] Card', i, 'missing .flashcard-back');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOTSTRAP
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initFlashcards();
+  initializeQuizDOM();
+  validateDOM();
+});
+</script>
+</body>
+</html>

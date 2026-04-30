@@ -401,3 +401,9 @@
 - **Hook Version**: 1.02
 - **Date**: 29-04-2026 22:07
 - **Prompt**: generate the architecture documents for this project
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 30-04-2026 19:33
+- **Prompt**: generate the flash quiz site for this project
+- **Summary**: Created `docs/study_tool.html` — a self-contained, offline-ready Project Mastery Study Tool (STUDY_TOOL_TEMPLATE_VERSION 2.0). Analysed `main.py` to extract 11 teachable concepts (Particle/Square OOP, vector steering forces, inverse-speed formula, dt-based movement, pending_spawns rebirth queue, anti-stick logic, O(N²) complexity). Generated 12 flashcards with click/keyboard flip animation and 15 Medium-difficulty quiz questions (4 behaviour tracing, 3 debugging, 3 design tradeoff, 3 edge case, 2 Big-O). Includes DOM validation, score results with per-question explanations, and retake support.
