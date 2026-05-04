@@ -22,3 +22,20 @@ Prevent a single square from dominating the screen by splitting it when it becom
 - I observed that large squares no longer grow past 30 pixels; instead, they immediately turn into two smaller squares.
 
 - This maintains the total "square population" count properly because the prey dies but the predator splits, resulting in a net population change that keeps the simulation dynamic.
+
+## Exercise 8: Speed Testing Feature Analysis
+
+### Assumptions
+I assume that `dt` (delta time) is handled correctly by the Pygame clock to ensure speed calculations remain consistent regardless of frame rate.
+
+* **Speed-Size Relationship**: I assume the intended behavior is that `max_speed` is inversely proportional to `size` (smaller = faster), as defined in the `Square` constructor.
+
+To validate the speed, I would evaluate:
+1. **Magnitude Verification**: The hypotenuse of the velocity vectors (`vx`, `vy`) must not exceed the `max_speed` property of the `Square`.
+2. **Growth Impact**: When a square grows via `grow()`, the `max_speed` must be recalculated immediately to reflect the new physics of the larger object.
+
+### Implementation Requirements
+* **Global Control**: A `TEST_MODE_ON` boolean in `config.py` allows to enable/disable performance-heavy logging without modifying the logic.
+
+ The check must occur after steering forces are applied but before the final position update to catch violations early.
+ a simple `print()` statement suffices

@@ -28,3 +28,9 @@ DEATH_PARTICLE_COUNT: int = 30
 BIRTH_PARTICLE_COUNT: int = 30
 REBIRTH_DELAY_SECONDS: float = 2.0
 REBIRTH_FREEZE_SECONDS: float = 1.0
+
+# Exercise 8: Speed Test 
+TEST_MODE_ON: bool = True
+
+# Exercise 9: Animated Growth
+GROWTH_DURATION: float = 0.5

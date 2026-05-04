@@ -104,7 +104,7 @@ class Square:
             # Calculate intensity/size based on position in list
             factor = (i + 1) / len(self.trail)
             trail_size = int(self.size * 0.8 * factor)
-            
+
             # Draw as outlines to keep the screen clean
             trail_rect = pygame.Rect(int(pos[0]), int(pos[1]), trail_size, trail_size)
             pygame.draw.rect(surface, self.color, trail_rect, 1)
