@@ -8,6 +8,7 @@ from .factories import (
     create_death_particles,
     create_squares,
     spawn_reborn_square,
+    create_fixed_square,
 )
 
 
@@ -79,7 +80,22 @@ def run_game() -> None:
     pygame.display.set_caption("Random Squares")
     clock: pygame.time.Clock = pygame.time.Clock()
 
-    squares: list[Square] = create_squares(NUM_SQUARES, WIDTH, HEIGHT)
+    # Exercise 1: Starting with specific counts and sizes
+    # Removed the random initialization: squares: list[Square] = create_squares(NUM_SQUARES, WIDTH, HEIGHT)
+    squares: list[Square] = []
+
+    # 5 squares of size 25 pixels
+    for _ in range(5):
+        squares.append(create_fixed_square(WIDTH, HEIGHT, 25))
+
+    # 10 squares of size 10 pixels
+    for _ in range(10):
+        squares.append(create_fixed_square(WIDTH, HEIGHT, 10))
+
+    # 30 squares of size 4 pixels
+    for _ in range(30):
+        squares.append(create_fixed_square(WIDTH, HEIGHT, 4))
+
     particles: list[Particle] = []
     pending_spawns: list[tuple[float, float, float]] = []
     current_time: float = 0.0

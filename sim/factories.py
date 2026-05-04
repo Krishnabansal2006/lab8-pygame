@@ -69,3 +69,10 @@ def spawn_reborn_square(birth_x: float, birth_y: float) -> Square:
     square.age = 0.0
     square.freeze_timer = REBIRTH_FREEZE_SECONDS
     return square
+
+
+def create_fixed_square(screen_w: int, screen_h: int, size: int) -> Square:
+    """Exercise 1: Creates a square with a specific fixed size."""
+    x: float = random.uniform(0, screen_w - size)
+    y: float = random.uniform(0, screen_h - size)
+    return Square(x, y, size, random_bright_color())
