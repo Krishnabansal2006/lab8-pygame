@@ -1,8 +1,6 @@
 import math
 import random
-
 import pygame
-
 from .config import Color, MAX_SPEED, MIN_SIZE
 
 
@@ -57,21 +55,24 @@ class Square:
         self.age: float = 0.0
         self.freeze_timer: float = 0.0
 
+    def get_rect(self) -> pygame.Rect:
+        """Exercise 4: Returns a pygame Rect for collision detection."""
+        return pygame.Rect(int(self.x), int(self.y), self.size, self.size)
+
     def is_dead(self) -> bool:
         return self.age >= self.lifespan
 
     def is_caught(self, squares: list["Square"]) -> bool:
-        cx1: float = self.x + self.size / 2
-        cy1: float = self.y + self.size / 2
+        """Exercise 4: Updated to use Rect collision instead of distance."""
+        my_rect = self.get_rect()
 
         for other in squares:
             if other is self:
                 continue
+
+            # Larger square eats smaller square
             if other.size > self.size:
-                cx2: float = other.x + other.size / 2
-                cy2: float = other.y + other.size / 2
-                dist: float = math.hypot(cx1 - cx2, cy1 - cy2)
-                if dist < (self.size + other.size) / 2:
+                if my_rect.colliderect(other.get_rect()):
                     return True
         return False
 
@@ -79,5 +80,5 @@ class Square:
         pygame.draw.rect(
             surface,
             self.color,
-            pygame.Rect(int(self.x), int(self.y), self.size, self.size),
+            self.get_rect(),  # Using the new get_rect method
         )
