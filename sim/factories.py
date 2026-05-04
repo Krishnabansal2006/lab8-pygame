@@ -60,10 +60,11 @@ def create_birth_particles(x: float, y: float, color: Color) -> list[Particle]:
     return particles
 
 
-def spawn_reborn_square(birth_x: float, birth_y: float) -> Square:
-    size: int = random.randint(MIN_SIZE, MAX_SIZE)
+def spawn_reborn_square(birth_x: float, birth_y: float, original_size: int) -> Square:
+    """Exercise 2: Respawns a square with its original size."""
     color: Color = random_bright_color()
-    square: Square = Square(birth_x - size / 2, birth_y - size / 2, size, color)
+    # Create the new square using original_size instead of a random one
+    square: Square = Square(birth_x - original_size / 2, birth_y - original_size / 2, original_size, color)
     square.vx = 0.0
     square.vy = 0.0
     square.age = 0.0

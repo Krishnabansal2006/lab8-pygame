@@ -15,7 +15,7 @@ from .factories import (
 def _update_squares(
     squares: list[Square],
     particles: list[Particle],
-    pending_spawns: list[tuple[float, float, float]],
+    pending_spawns: list[tuple[float, float, float, int]],
     current_time: float,
     dt: float,
 ) -> list[Square]:
@@ -28,8 +28,9 @@ def _update_squares(
             center_x: float = square.x + square.size / 2
             center_y: float = square.y + square.size / 2
             particles.extend(create_death_particles(center_x, center_y, square.color))
+            # Exercise 2: Added square.size to the rebirth data
             pending_spawns.append(
-                (current_time + REBIRTH_DELAY_SECONDS, center_x, center_y)
+                (current_time + REBIRTH_DELAY_SECONDS, center_x, center_y, square.size)
             )
         else:
             alive.append(square)
@@ -40,19 +41,20 @@ def _update_squares(
 def _process_rebirths(
     squares: list[Square],
     particles: list[Particle],
-    pending_spawns: list[tuple[float, float, float]],
+    pending_spawns: list[tuple[float, float, float, int]],
     current_time: float,
-) -> list[tuple[float, float, float]]:
+) -> list[tuple[float, float, float, int]]:
     """Spawn squares whose timers elapsed and keep the remaining schedule."""
-    still_pending: list[tuple[float, float, float]] = []
+    still_pending: list[tuple[float, float, float, int]] = []
 
-    for spawn_time, birth_x, birth_y in pending_spawns:
+    for spawn_time, birth_x, birth_y, original_size in pending_spawns:
         if current_time >= spawn_time:
-            new_square: Square = spawn_reborn_square(birth_x, birth_y)
+            # Exercise 2: Pass original_size to the factory
+            new_square: Square = spawn_reborn_square(birth_x, birth_y, original_size)
             particles.extend(create_birth_particles(birth_x, birth_y, new_square.color))
             squares.append(new_square)
         else:
-            still_pending.append((spawn_time, birth_x, birth_y))
+            still_pending.append((spawn_time, birth_x, birth_y, original_size))
 
     return still_pending
 
@@ -80,24 +82,18 @@ def run_game() -> None:
     pygame.display.set_caption("Random Squares")
     clock: pygame.time.Clock = pygame.time.Clock()
 
-    # Exercise 1: Starting with specific counts and sizes
-    # Removed the random initialization: squares: list[Square] = create_squares(NUM_SQUARES, WIDTH, HEIGHT)
+    # Exercise 1 initialization
     squares: list[Square] = []
-
-    # 5 squares of size 25 pixels
     for _ in range(5):
         squares.append(create_fixed_square(WIDTH, HEIGHT, 25))
-
-    # 10 squares of size 10 pixels
     for _ in range(10):
         squares.append(create_fixed_square(WIDTH, HEIGHT, 10))
-
-    # 30 squares of size 4 pixels
     for _ in range(30):
         squares.append(create_fixed_square(WIDTH, HEIGHT, 4))
 
     particles: list[Particle] = []
-    pending_spawns: list[tuple[float, float, float]] = []
+    # Exercise 2: The list now expects 4 items (time, x, y, size)
+    pending_spawns: list[tuple[float, float, float, int]] = []
     current_time: float = 0.0
 
     running: bool = True
