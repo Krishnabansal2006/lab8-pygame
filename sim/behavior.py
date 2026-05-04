@@ -98,23 +98,20 @@ def clamp_speed(square: Square) -> None:
         square.vy = (square.vy / velocity_magnitude) * square.speed
 
 
-def move_and_bounce(square: Square, screen_w: int, screen_h: int, dt: float) -> None:
+def move_and_wrap(square: Square, screen_w: int, screen_h: int, dt: float) -> None:
+    """Exercise 3: Squares wrap around the screen edges instead of bouncing."""
     square.x += square.vx * dt * 60
     square.y += square.vy * dt * 60
 
     if square.x < 0:
+        square.x = screen_w
+    elif square.x > screen_w:
         square.x = 0
-        square.vx = abs(square.vx)
-    elif square.x + square.size > screen_w:
-        square.x = screen_w - square.size
-        square.vx = -abs(square.vx)
 
     if square.y < 0:
+        square.y = screen_h
+    elif square.y > screen_h:
         square.y = 0
-        square.vy = abs(square.vy)
-    elif square.y + square.size > screen_h:
-        square.y = screen_h - square.size
-        square.vy = -abs(square.vy)
 
 
 def anti_stick(square: Square, screen_w: int, screen_h: int) -> None:
@@ -159,5 +156,6 @@ def update_square(
 
     apply_steering(square, steer_x, steer_y)
     clamp_speed(square)
-    move_and_bounce(square, screen_w, screen_h, dt)
+    # Updated for Exercise 3
+    move_and_wrap(square, screen_w, screen_h, dt)
     anti_stick(square, screen_w, screen_h)

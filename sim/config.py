@@ -8,7 +8,7 @@ BG_COLOR: Color = (20, 20, 30)
 
 MIN_SIZE: int = 10
 MAX_SIZE: int = 50
-MAX_SPEED: float = 4.0
+MAX_SPEED: float = 2.0
 
 FLEE_RADIUS: float = 70.0
 CHASE_RADIUS: float = 120.0
