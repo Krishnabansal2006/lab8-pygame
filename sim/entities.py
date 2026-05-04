@@ -46,12 +46,12 @@ class Square:
         self.max_speed: float = MAX_SPEED * (MIN_SIZE / self.size)
         self.speed: float = self.max_speed
 
-        self.jitter_timer: int = random.randint(20, 60)
+        self.jitter_timer: int = random.randint(10, 60)
         angle: float = random.uniform(0, 2 * math.pi)
         self.vx: float = self.speed * math.cos(angle)
         self.vy: float = self.speed * math.sin(angle)
 
-        self.lifespan: float = random.uniform(5, 20)
+        self.lifespan: float = random.uniform(20, 60)
         self.age: float = 0.0
         self.freeze_timer: float = 0.0
 
@@ -64,6 +64,17 @@ class Square:
         self.size += amount
         self.max_speed = MAX_SPEED * (MIN_SIZE / self.size)
         self.speed = self.max_speed
+
+    def split(self) -> "Square":
+        """Exercise 6: Splits the square into two."""
+        new_size = self.size // 2  # Half the size
+        self.size = new_size
+        # Update speed for the original square
+        self.max_speed = MAX_SPEED * (MIN_SIZE / self.size)
+        self.speed = self.max_speed
+
+        # Create the 'child' square at the same position
+        return Square(self.x, self.y, new_size, self.color)
 
     def is_dead(self) -> bool:
         return self.age >= self.lifespan
