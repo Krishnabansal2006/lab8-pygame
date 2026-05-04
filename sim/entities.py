@@ -59,26 +59,33 @@ class Square:
         """Exercise 4: Returns a pygame Rect for collision detection."""
         return pygame.Rect(int(self.x), int(self.y), self.size, self.size)
 
+    def grow(self, amount: int) -> None:
+        """Exercise 5: Increase size and update max speed accordingly."""
+        self.size += amount
+        self.max_speed = MAX_SPEED * (MIN_SIZE / self.size)
+        self.speed = self.max_speed
+
     def is_dead(self) -> bool:
         return self.age >= self.lifespan
 
-    def is_caught(self, squares: list["Square"]) -> bool:
-        """Exercise 4: Updated to use Rect collision instead of distance."""
+    def get_predator(self, squares: list["Square"]) -> "Square | None":
+        """Exercise 5: Identify if a larger square is eating this one."""
         my_rect = self.get_rect()
-
         for other in squares:
             if other is self:
                 continue
-
-            # Larger square eats smaller square
             if other.size > self.size:
                 if my_rect.colliderect(other.get_rect()):
-                    return True
-        return False
+                    return other
+        return None
+
+    def is_caught(self, squares: list["Square"]) -> bool:
+        """Exercise 4/5: Check for predator collision."""
+        return self.get_predator(squares) is not None
 
     def draw(self, surface: pygame.Surface) -> None:
         pygame.draw.rect(
             surface,
             self.color,
-            self.get_rect(),  # Using the new get_rect method
+            self.get_rect(),
         )

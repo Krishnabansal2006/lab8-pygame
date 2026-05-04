@@ -26,8 +26,14 @@ def _update_squares(
         # update_square now uses move_and_wrap internally (Exercise 3)
         update_square(square, WIDTH, HEIGHT, squares, dt)
 
-        # is_caught now uses Rect-based collision (Exercise 4)
-        if square.is_dead() or square.is_caught(squares):
+        # Exercise 5: Check for predator to handle growth
+        predator = square.get_predator(squares)
+        
+        if square.is_dead() or predator is not None:
+            if predator is not None:
+                # Predator grows by 2 pixels when eating
+                predator.grow(2)
+
             center_x: float = square.x + square.size / 2
             center_y: float = square.y + square.size / 2
             particles.extend(create_death_particles(center_x, center_y, square.color))
@@ -95,7 +101,6 @@ def run_game() -> None:
         squares.append(create_fixed_square(WIDTH, HEIGHT, 4))
 
     particles: list[Particle] = []
-    # Updated type hint for Exercise 2/4
     pending_spawns: list[tuple[float, float, float, int]] = []
     current_time: float = 0.0
 
