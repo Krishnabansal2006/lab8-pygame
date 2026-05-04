@@ -100,18 +100,28 @@ def clamp_speed(square: Square) -> None:
 
 def move_and_wrap(square: Square, screen_w: int, screen_h: int, dt: float) -> None:
     """Exercise 3: Squares wrap around the screen edges instead of bouncing."""
+    # Exercise 7: Record position before moving
+    square.trail.append((square.x, square.y))
+    if len(square.trail) > square.max_trail_length:
+        square.trail.pop(0)
+
     square.x += square.vx * dt * 60
     square.y += square.vy * dt * 60
 
+    # Exercise 7: Clear trail on wrap to avoid "stretching" lines
     if square.x < 0:
         square.x = screen_w
+        square.trail.clear()
     elif square.x > screen_w:
         square.x = 0
+        square.trail.clear()
 
     if square.y < 0:
         square.y = screen_h
+        square.trail.clear()
     elif square.y > screen_h:
         square.y = 0
+        square.trail.clear()
 
 
 def anti_stick(square: Square, screen_w: int, screen_h: int) -> None:

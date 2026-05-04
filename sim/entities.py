@@ -55,6 +55,10 @@ class Square:
         self.age: float = 0.0
         self.freeze_timer: float = 0.0
 
+        # Exercise 7: Initialize trail list and max length
+        self.trail: list[tuple[float, float]] = []
+        self.max_trail_length: int = 10
+
     def get_rect(self) -> pygame.Rect:
         """Exercise 4: Returns a pygame Rect for collision detection."""
         return pygame.Rect(int(self.x), int(self.y), self.size, self.size)
@@ -95,6 +99,16 @@ class Square:
         return self.get_predator(squares) is not None
 
     def draw(self, surface: pygame.Surface) -> None:
+        # Exercise 7: Draw the fading trail segments
+        for i, pos in enumerate(self.trail):
+            # Calculate intensity/size based on position in list
+            factor = (i + 1) / len(self.trail)
+            trail_size = int(self.size * 0.8 * factor)
+            
+            # Draw as outlines to keep the screen clean
+            trail_rect = pygame.Rect(int(pos[0]), int(pos[1]), trail_size, trail_size)
+            pygame.draw.rect(surface, self.color, trail_rect, 1)
+
         pygame.draw.rect(
             surface,
             self.color,
