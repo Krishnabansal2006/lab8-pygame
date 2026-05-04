@@ -96,7 +96,17 @@ class Boid:
     # TODO: Implement Random Steering of the velocity vector to create more natural movement
     def _random_steer(self, spread: float = 0.2) -> None:
         # # Randomly steer a bit to create more natural movement
-        pass
+        """Exercise 11: Implement angle-based random steering for natural movement."""
+        # 1. Calculate the current movement angle using the velocity components
+        current_angle: float = math.atan2(self.vy, self.vx)
+
+        # 2. Add a random offset within the 'spread' range
+        # random.uniform(-spread, spread) provides a jitter in both directions
+        new_angle: float = current_angle + random.uniform(-spread, spread)
+
+        # 3. Update vx and vy based on the new angle while maintaining original speed
+        self.vx = self.speed * math.cos(new_angle)
+        self.vy = self.speed * math.sin(new_angle)
 
     # TODO: Implement the three main boid behaviors: separation, alignment, and cohesion
 
@@ -132,6 +142,17 @@ class Boid:
         # dt is in milliseconds, convert to seconds for physics calculations, when applying steering forces
         # and the speed which are in pixels per second
         dt_seconds: float = dt / 1000.0
+        # Now calling the random steering to influence movement before position update[cite: 8, 9]
+        self._random_steer()
+
+        self.x += self.vx * dt_seconds
+        self.y += self.vy * dt_seconds
+
+        # Handle wall behavior
+        if config.WALL_BEHAVIOR == "bounce":
+            self._screen_bounce()
+        else:
+            self._screen_wrap()
 
         # TODO: Use _random_steer, _separation, _alignment and _cohesion in update()
         # Explanation:
