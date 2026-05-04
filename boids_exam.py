@@ -64,7 +64,16 @@ class Boid:
 
     # TODO: Implement speed clamping to ensure boids don't exceed max speed
     def _clampSpeed(self) -> None:
-        pass
+        """Helper to keep velocity within Config limits."""
+        current_speed = math.hypot(self.vx, self.vy)
+        if current_speed > config.BOID_SPEED_MAX:
+            factor = config.BOID_SPEED_MAX / current_speed
+            self.vx *= factor
+            self.vy *= factor
+        elif current_speed < config.BOID_SPEED_MIN:
+            factor = config.BOID_SPEED_MIN / current_speed
+            self.vx *= factor
+            self.vy *= factor
 
     # TODO: Implement Screen Wrapping
     # Screen wrapping: if a boid goes off one edge of the screen,
@@ -117,6 +126,26 @@ class Boid:
     # Then sum these vectors to get the overall separation steering force.
     def _separation(self, boids: List["Boid"]) -> pygame.Vector2:
         steer: pygame.Vector2 = pygame.Vector2(0, 0)
+        count: int = 0
+        
+        for other in boids:
+            if other is self:
+                continue
+            
+            # Calculate distance between boids
+            distance = math.hypot(self.x - other.x, self.y - other.y)
+            
+            # Check if the other boid is within separation range
+            if 0 < distance < config.SEPARATION_DISTANCE:
+                # Vector pointing away from neighbor
+                diff = pygame.Vector2(self.x - other.x, self.y - other.y)
+                # Weight by inverse distance (stronger push when closer)
+                diff /= distance
+                steer += diff
+                count += 1
+        
+        if count > 0:
+            steer /= count # Average the steering force
         return steer
 
     # Alignment: steer toward the average direction of nearby boids:
@@ -138,39 +167,45 @@ class Boid:
         return steer
 
     # TODO: Use _random_steer, _separation, _alignment and _cohesion in update()
-    def update(self, boids: List["Boid"], dt: int) -> None:
-        # dt is in milliseconds, convert to seconds for physics calculations, when applying steering forces
-        # and the speed which are in pixels per second
+    # TODO: Use _random_steer, _separation, _alignment and _cohesion in update()
+    def update(self, boids: List['Boid'], dt: int) -> None:
+        # dt is in milliseconds, convert to seconds for physics calculations
         dt_seconds: float = dt / 1000.0
-        # Now calling the random steering to influence movement before position update[cite: 8, 9]
+
+        # Apply random steering to create natural movement
         self._random_steer()
 
+        # Initialize an empty steering vector
+        steering: pygame.Vector2 = pygame.Vector2(0, 0)
+
+        # Accumulate steering forces based on Config flags
+        if config.SEPARATION_ON:
+            # Steer away from neighbors to avoid crowding
+            steering += self._separation(boids) * config.SEPARATION_STEER_STRENGTH
+
+        if config.ALIGNEMENT_ON:
+            # Steer toward the average heading of neighbors
+            steering += self._alignment(boids) * config.ALIGNEMENT_STEER_STRENGTH
+
+        if config.COHESION_ON:
+            # Steer toward the center of mass of neighbors
+            steering += self._cohesion(boids) * config.COHESION_STEER_STRENGTH
+
+        # Apply the accumulated steering to velocity
+        self.vx += steering.x * dt_seconds
+        self.vy += steering.y * dt_seconds
+
+        # Ensure boid stays within speed limits
+        self._clampSpeed()
+
+        # Update the boid's position based on its velocity
         self.x += self.vx * dt_seconds
         self.y += self.vy * dt_seconds
 
-        # Handle wall behavior
+        # Handle wall behavior (bounce or wrap)
         if config.WALL_BEHAVIOR == "bounce":
             self._screen_bounce()
-        else:
-            self._screen_wrap()
-
-        # TODO: Use _random_steer, _separation, _alignment and _cohesion in update()
-        # Explanation:
-        # Use the _separation, _alignment, and _cohesion methods to calculate the steering forces based on nearby boids.
-        # Use the flags in the Config class to determine which behaviors are active
-        # and apply the corresponding steering forces to the boid's velocity
-        # using the defined strengths (*_STEER_STRENGTH) for each behavior.
-
-        self._random_steer()
-
-        # Update the boid's position based on its velocity.
-        self.x += self.vx * dt_seconds
-        self.y += self.vy * dt_seconds
-
-        # Last, handle wall behavior (bounce or wrap)
-        if config.WALL_BEHAVIOR == "bounce":
-            self._screen_bounce()
-        else:
+        else:   
             self._screen_wrap()
 
     # Draw boid as a triangle pointing in the direction of velocity
