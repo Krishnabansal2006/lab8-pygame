@@ -130,3 +130,6 @@
 ### 05-05-2026 14:52
 - **Prompt**: finsh the todo list
 
+### 10-05-2026 23:02
+- **Prompt**: turn on the journal logger
+
