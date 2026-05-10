@@ -139,3 +139,6 @@
 ### 10-05-2026 23:07
 - **Prompt**: Now, based on the plan, generate web/js-port-validation.md. Include a side-by-side table showing the Original Pygame calls vs. the JS Canvas equivalents (like pygame.draw.rect vs ctx.fillRect).
 
+### 10-05-2026 23:09
+- **Prompt**: The plan is approved. Implement the full port into a single web/index.html file. Remember the 'Structural Parity' rule: 1-to-1 mapping for all classes and functions. Add JSDoc comments to explain the Pygame equivalents.
+
