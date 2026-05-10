@@ -136,3 +136,6 @@
 ### 10-05-2026 23:04
 - **Prompt**: I am using #javascript-transpiler.agent.md. Please analyze my #main.py and the sim/ folder. Generate the web/js-port.md file as my planning document. List every Python class and function and what its JavaScript equivalent will be. Do not write the HTML yet
 
+### 10-05-2026 23:07
+- **Prompt**: Now, based on the plan, generate web/js-port-validation.md. Include a side-by-side table showing the Original Pygame calls vs. the JS Canvas equivalents (like pygame.draw.rect vs ctx.fillRect).
+
