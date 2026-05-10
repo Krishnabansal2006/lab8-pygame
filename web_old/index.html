@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Random Squares (ported from Pygame)</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #14141a
+        }
+
+        canvas {
+            background: #14141a;
+            image-rendering: optimizeSpeed
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="simCanvas" width="800" height="600"></canvas>
+    <script>
+        // JavaScript port of the Python/Pygame simulation.
+        // Structural parity: classes and functions kept with original names.
+
+        // Config (from sim/config.py)
+        const WIDTH = 800;
+        const HEIGHT = 600;
+        const FPS = 60;
+        const NUM_SQUARES = 15;
+        const BG_COLOR = [20, 20, 30];
+
+        const MIN_SIZE = 10;
+        const MAX_SIZE = 50;
+        const MAX_SPEED = 2.0;
+
+        const FLEE_RADIUS = 70.0;
+        const CHASE_RADIUS = 120.0;
+        const SEP_RADIUS = 30.0;
+
+        const FLEE_WEIGHT = 0.5;
+        const CHASE_WEIGHT = 0.2;
+        const WALL_WEIGHT = 0.25;
+        const SEPARATION_WEIGHT = 0.05;
+        const STEER_BLEND = 0.35;
+
+        const WALL_MARGIN = 60;
+        const WALL_STRENGTH = 0.8;
+        const DEATH_PARTICLE_COUNT = 30;
+        const BIRTH_PARTICLE_COUNT = 30;
+        const REBIRTH_DELAY_SECONDS = 2.0;
+        const REBIRTH_FREEZE_SECONDS = 1.0;
+
+        // Exercise flags mirrored from Python (modifiable via keys)
+        let SEPARATION_ON = false;
+        let ALIGNEMENT_ON = false;
+        let COHESION_ON = false;
+        let WALL_BEHAVIOR = 'wrap';
+
+        // Utility
+        function rgb(colorArr, a = 1.0) {
+            if (a >= 1) return `rgb(${colorArr[0]},${colorArr[1]},${colorArr[2]})`;
+            return `rgba(${colorArr[0]},${colorArr[1]},${colorArr[2]},${a})`;
+        }
+
+        // -------------------- Entities --------------------
+        /**
+         * Particle class. Equivalent conceptually to Python's `Particle` in `sim/entities.py`.
+         */
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 80 + Math.random() * (200 - 80);
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.age = 0;
+                this.lifespan = 0.6 + Math.random() * 0.6;
+            }
+            update(dt) {
+                this.age += dt;
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+            }
+            is_dead() {
+                return this.age >= this.lifespan;
+            }
+            draw(ctx) {
+                const alpha = 1.0 - (this.age / this.lifespan);
+                const radius = Math.max(1, Math.floor(4 * alpha));
+                ctx.fillStyle = rgb(this.color, Math.max(0, alpha));
+                ctx.beginPath();
+                ctx.arc(Math.floor(this.x), Math.floor(this.y), radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        /**
+         * Square class. Mirrors `Square` in `sim/entities.py` (state-only).
+         */
+        class Square {
+            constructor(x, y, size, color) {
+                this.x = x; this.y = y; this.size = size; this.color = color;
+                this.max_speed = MAX_SPEED * (MIN_SIZE / this.size);
+                this.speed = this.max_speed;
+                this.jitter_timer = 10 + Math.floor(Math.random() * 51);
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = this.speed * Math.cos(angle);
+                this.vy = this.speed * Math.sin(angle);
+                this.lifespan = 20 + Math.random() * 40;
+                this.age = 0;
+                this.freeze_timer = 0;
+                this.trail = [];
+                this.max_trail_length = 10;
+            }
+            get_rect() {
+                return { x: Math.floor(this.x), y: Math.floor(this.y), w: this.size, h: this.size };
+            }
+            grow(amount) {
+                this.size += amount;
+                this.max_speed = MAX_SPEED * (MIN_SIZE / this.size);
+                this.speed = this.max_speed;
+            }
+            split() {
+                const new_size = Math.floor(this.size / 2);
+                this.size = new_size;
+                this.max_speed = MAX_SPEED * (MIN_SIZE / this.size);
+                this.speed = this.max_speed;
+                return new Square(this.x, this.y, new_size, this.color);
+            }
+            is_dead() {
+                return this.age >= this.lifespan;
+            }
+            get_predator(squares) {
+                const my = this.get_rect();
+                for (const other of squares) {
+                    if (other === this) continue;
+                    if (other.size > this.size) {
+                        const o = other.get_rect();
+                        if (rectsIntersect(my, o)) return other;
+                    }
+                }
+                return null;
+            }
+            is_caught(squares) {
+                return this.get_predator(squares) !== null;
+            }
+            draw(ctx) {
+                // draw trail outlines
+                if (this.trail.length > 0) {
+                    for (let i = 0; i < this.trail.length; i++) {
+                        const pos = this.trail[i];
+                        const factor = (i + 1) / this.trail.length;
+                        const trail_size = Math.floor(this.size * 0.8 * factor);
+                        ctx.strokeStyle = rgb(this.color, 0.6 * factor);
+                        ctx.strokeRect(Math.floor(pos[0]), Math.floor(pos[1]), trail_size, trail_size);
+                    }
+                }
+                ctx.fillStyle = rgb(this.color);
+                ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.size, this.size);
+            }
+        }
+
+        // Helper: rectangle intersection (used instead of pygame.Rect.colliderect)
+        function rectsIntersect(a, b) {
+            return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+        }
+
+        // -------------------- Factories (sim/factories.py) --------------------
+        function random_bright_color() {
+            return [100 + Math.floor(Math.random() * 156), 100 + Math.floor(Math.random() * 156), 100 + Math.floor(Math.random() * 156)];
+        }
+
+        function create_square(screen_w, screen_h) {
+            const size = MIN_SIZE + Math.floor(Math.random() * (MAX_SIZE - MIN_SIZE + 1));
+            const x = Math.random() * (screen_w - size);
+            const y = Math.random() * (screen_h - size);
+            return new Square(x, y, size, random_bright_color());
+        }
+
+        function create_squares(count, screen_w, screen_h) {
+            const arr = [];
+            for (let i = 0; i < count; i++) arr.push(create_square(screen_w, screen_h));
+            return arr;
+        }
+
+        function create_death_particles(x, y, color) {
+            const out = [];
+            for (let i = 0; i < DEATH_PARTICLE_COUNT; i++) out.push(new Particle(x, y, color));
+            return out;
+        }
+
+        function create_birth_particles(x, y, color) {
+            const particles = [];
+            for (let i = 0; i < BIRTH_PARTICLE_COUNT; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 100;
+                const start_x = x + Math.cos(angle) * distance;
+                const start_y = y + Math.sin(angle) * distance;
+                const p = new Particle(start_x, start_y, color);
+                const speed = 80 + Math.random() * (200 - 80);
+                const dx = x - start_x; const dy = y - start_y;
+                const length = Math.hypot(dx, dy);
+                if (length === 0) continue;
+                p.vx = (dx / length) * speed; p.vy = (dy / length) * speed;
+                particles.push(p);
+            }
+            return particles;
+        }
+
+        function spawn_reborn_square(birth_x, birth_y, original_size) {
+            const color = random_bright_color();
+            const sq = new Square(birth_x - original_size / 2, birth_y - original_size / 2, original_size, color);
+            sq.vx = 0; sq.vy = 0; sq.age = 0; sq.freeze_timer = REBIRTH_FREEZE_SECONDS;
+            return sq;
+        }
+
+        function create_fixed_square(screen_w, screen_h, size) {
+            const x = Math.random() * (screen_w - size);
+            const y = Math.random() * (screen_h - size);
+            return new Square(x, y, size, random_bright_color());
+        }
+
+        // -------------------- Behavior (sim/behavior.py) --------------------
+        function apply_jitter(square) {
+            square.jitter_timer -= 1;
+            if (square.jitter_timer <= 0) {
+                const angle = Math.atan2(square.vy, square.vx) + (Math.random() * 0.2 - 0.1);
+                square.vx = square.speed * Math.cos(angle);
+                square.vy = square.speed * Math.sin(angle);
+                square.jitter_timer = 30 + Math.floor(Math.random() * 61);
+            }
+        }
+
+        function compute_social_forces(square, squares) {
+            let flee_x = 0, flee_y = 0, chase_x = 0, chase_y = 0, sep_x = 0, sep_y = 0;
+            for (const other of squares) {
+                if (other === square) continue;
+                const dx = square.x - other.x;
+                const dy = square.y - other.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist === 0) continue;
+                if (other.size > square.size && dist < FLEE_RADIUS) {
+                    const weight = 1.0 - (dist / FLEE_RADIUS);
+                    flee_x += (dx / dist) * weight; flee_y += (dy / dist) * weight;
+                }
+                if (other.size < square.size && dist < CHASE_RADIUS) {
+                    const weight = 1.0 - (dist / CHASE_RADIUS);
+                    chase_x += (-dx / dist) * weight; chase_y += (-dy / dist) * weight;
+                }
+                if (dist < SEP_RADIUS) {
+                    const weight = 1.0 - (dist / SEP_RADIUS);
+                    sep_x += (dx / dist) * weight; sep_y += (dy / dist) * weight;
+                }
+            }
+            return [flee_x, flee_y, chase_x, chase_y, sep_x, sep_y];
+        }
+
+        function compute_wall_force(square, screen_w, screen_h) {
+            let wall_x = 0, wall_y = 0;
+            if (square.x < WALL_MARGIN) wall_x += WALL_STRENGTH * (1.0 - square.x / WALL_MARGIN);
+            if (square.x + square.size > screen_w - WALL_MARGIN) {
+                const right_gap = screen_w - (square.x + square.size);
+                wall_x -= WALL_STRENGTH * (1.0 - right_gap / WALL_MARGIN);
+            }
+            if (square.y < WALL_MARGIN) wall_y += WALL_STRENGTH * (1.0 - square.y / WALL_MARGIN);
+            if (square.y + square.size > screen_h - WALL_MARGIN) {
+                const bottom_gap = screen_h - (square.y + square.size);
+                wall_y -= WALL_STRENGTH * (1.0 - bottom_gap / WALL_MARGIN);
+            }
+            return [wall_x, wall_y];
+        }
+
+        function apply_steering(square, steer_x, steer_y) {
+            let steer_length = Math.hypot(steer_x, steer_y);
+            if (steer_length > 0) {
+                steer_x /= steer_length; steer_y /= steer_length;
+                square.vx = (1 - STEER_BLEND) * square.vx + STEER_BLEND * steer_x * square.speed;
+                square.vy = (1 - STEER_BLEND) * square.vy + STEER_BLEND * steer_y * square.speed;
+            }
+        }
+
+        function clamp_speed(square) {
+            const velocity_magnitude = Math.hypot(square.vx, square.vy);
+            if (velocity_magnitude > square.speed) {
+                square.vx = (square.vx / velocity_magnitude) * square.speed;
+                square.vy = (square.vy / velocity_magnitude) * square.speed;
+            }
+        }
+
+        function move_and_wrap(square, screen_w, screen_h, dt) {
+            square.trail.push([square.x, square.y]);
+            if (square.trail.length > square.max_trail_length) square.trail.shift();
+            square.x += square.vx * dt * 60;
+            square.y += square.vy * dt * 60;
+            if (square.x < 0) { square.x = screen_w; square.trail = []; }
+            else if (square.x > screen_w) { square.x = 0; square.trail = []; }
+            if (square.y < 0) { square.y = screen_h; square.trail = []; }
+            else if (square.y > screen_h) { square.y = 0; square.trail = []; }
+        }
+
+        function anti_stick(square, screen_w, screen_h) {
+            const eps = 1e-6;
+            if (square.x <= eps && square.vx < 0) square.vx = 0;
+            if (square.x + square.size >= screen_w - eps && square.vx > 0) square.vx = 0;
+            if (square.y <= eps && square.vy < 0) square.vy = 0;
+            if (square.y + square.size >= screen_h - eps && square.vy > 0) square.vy = 0;
+        }
+
+        function update_square(square, screen_w, screen_h, squares, dt) {
+            if (square.freeze_timer > 0) { square.freeze_timer -= dt; return; }
+            square.age += dt;
+            apply_jitter(square);
+            const [flee_x, flee_y, chase_x, chase_y, sep_x, sep_y] = compute_social_forces(square, squares);
+            const [wall_x, wall_y] = compute_wall_force(square, screen_w, screen_h);
+            const steer_x = flee_x * FLEE_WEIGHT + chase_x * CHASE_WEIGHT + wall_x * WALL_WEIGHT + sep_x * SEPARATION_WEIGHT;
+            const steer_y = flee_y * FLEE_WEIGHT + chase_y * CHASE_WEIGHT + wall_y * WALL_WEIGHT + sep_y * SEPARATION_WEIGHT;
+            apply_steering(square, steer_x, steer_y);
+            clamp_speed(square);
+            move_and_wrap(square, screen_w, screen_h, dt);
+            anti_stick(square, screen_w, screen_h);
+        }
+
+        // -------------------- Game loop and helpers (sim/game.py) --------------------
+        function _update_squares(squares, particles, pending_spawns, current_time, dt) {
+            const alive = [];
+            const newly_split = [];
+            for (const square of squares) {
+                update_square(square, WIDTH, HEIGHT, squares, dt);
+                const predator = square.get_predator(squares);
+                if (square.is_dead() || predator !== null) {
+                    if (predator !== null) {
+                        predator.grow(2);
+                        if (predator.size >= 30) newly_split.push(predator.split());
+                    }
+                    const center_x = square.x + square.size / 2;
+                    const center_y = square.y + square.size / 2;
+                    particles.push(...create_death_particles(center_x, center_y, square.color));
+                    pending_spawns.push([current_time + REBIRTH_DELAY_SECONDS, center_x, center_y, square.size]);
+                } else {
+                    alive.push(square);
+                }
+            }
+            return alive.concat(newly_split);
+        }
+
+        function _process_rebirths(squares, particles, pending_spawns, current_time) {
+            const still_pending = [];
+            for (const entry of pending_spawns) {
+                const [spawn_time, birth_x, birth_y, original_size] = entry;
+                if (current_time >= spawn_time) {
+                    const new_square = spawn_reborn_square(birth_x, birth_y, original_size);
+                    particles.push(...create_birth_particles(birth_x, birth_y, new_square.color));
+                    squares.push(new_square);
+                } else {
+                    still_pending.push(entry);
+                }
+            }
+            return still_pending;
+        }
+
+        function _draw_hud(ctx, fps, square_count) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px sans-serif';
+            ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 20);
+            ctx.fillText(`Squares: ${square_count}`, 10, 40);
+        }
+
+        // Main run_game equivalent
+        let running = true;
+        function run_game() {
+            const canvas = document.getElementById('simCanvas');
+            canvas.width = WIDTH; canvas.height = HEIGHT;
+            const ctx = canvas.getContext('2d');
+
+            const squares = [];
+            for (let i = 0; i < 5; i++) squares.push(create_fixed_square(WIDTH, HEIGHT, 25));
+            for (let i = 0; i < 10; i++) squares.push(create_fixed_square(WIDTH, HEIGHT, 10));
+            for (let i = 0; i < 30; i++) squares.push(create_fixed_square(WIDTH, HEIGHT, 4));
+
+            let particles = [];
+            let pending_spawns = [];
+            let current_time = 0.0;
+
+            // Input mapping: map keyboard toggles
+            window.addEventListener('keydown', (ev) => {
+                const k = ev.key.toLowerCase();
+                if (k === 'escape' || k === 'q') running = false;
+                if (k === 's') SEPARATION_ON = !SEPARATION_ON;
+                if (k === 'a') ALIGNEMENT_ON = !ALIGNEMENT_ON;
+                if (k === 'c') COHESION_ON = !COHESION_ON;
+                if (k === 'w') WALL_BEHAVIOR = (WALL_BEHAVIOR === 'wrap') ? 'bounce' : 'wrap';
+            });
+
+            // requestAnimationFrame loop with dt handling
+            let lastTime = performance.now();
+            function loop(timestamp) {
+                if (!running) return;
+                let dt = (timestamp - lastTime) / 1000.0;
+                lastTime = timestamp;
+                // Emulate pygame.Clock().tick(FPS) by clamping dt to 1/FPS when large
+                const maxDt = 1.0 / FPS;
+                if (dt > maxDt) dt = maxDt;
+                current_time += dt;
+
+                // clear
+                ctx.fillStyle = rgb(BG_COLOR);
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                // update
+                const updated = _update_squares(squares, particles, pending_spawns, current_time, dt);
+                squares.length = 0; squares.push(...updated);
+                pending_spawns = _process_rebirths(squares, particles, pending_spawns, current_time);
+
+                for (const square of squares) square.draw(ctx);
+
+                particles = particles.filter(p => !p.is_dead());
+                for (const p of particles) { p.update(dt); p.draw(ctx); }
+
+                const fps = dt > 0 ? (1.0 / dt) : 0;
+                _draw_hud(ctx, fps, squares.length);
+
+                requestAnimationFrame(loop);
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // Start
+        run_game();
+    </script>
+</body>
+
+</html>
